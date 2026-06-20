@@ -1,0 +1,145 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
+
+  /* Vastoq brand colours */
+  --color-indigo:        #1B2B6B;
+  --color-indigo-mid:    #2D3E8C;
+  --color-indigo-soft:   #E8ECF8;
+  --color-green:         #1D9E75;
+  --color-green-soft:    #E1F5EE;
+  --color-amber:         #E8A020;
+  --color-amber-soft:    #FEF3DC;
+  --color-red:           #D84040;
+  --color-parchment:     #F5F0E8;
+  --color-bg:            #FAFAF8;
+  --color-surface:       #FFFFFF;
+  --color-border-default: #E5E0D5;
+  --color-border-mid:    #D0C9BC;
+  --color-text-1:        #1A1814;
+  --color-text-2:        #4A4640;
+  --color-text-3:        #8A8480;
+
+  /* shadcn tokens mapped to Vastoq palette */
+  --color-background:    #FAFAF8;
+  --color-foreground:    #1A1814;
+  --color-card:          #FFFFFF;
+  --color-card-foreground: #1A1814;
+  --color-popover:       #FFFFFF;
+  --color-popover-foreground: #1A1814;
+  --color-primary:       #1B2B6B;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary:     #E8ECF8;
+  --color-secondary-foreground: #1B2B6B;
+  --color-muted:         #F5F0E8;
+  --color-muted-foreground: #8A8480;
+  --color-accent:        #E8ECF8;
+  --color-accent-foreground: #1B2B6B;
+  --color-destructive:   #D84040;
+  --color-border:        #E5E0D5;
+  --color-input:         #E5E0D5;
+  --color-ring:          #1B2B6B;
+  --color-chart-1:       #1B2B6B;
+  --color-chart-2:       #1D9E75;
+  --color-chart-3:       #E8A020;
+  --color-chart-4:       #D84040;
+  --color-chart-5:       #4A4640;
+
+  --radius-sm:  6px;
+  --radius-md:  12px;
+  --radius-lg:  18px;
+  --radius-xl:  24px;
+  --radius:     12px;
+
+  --shadow-sm:  0 1px 3px rgba(27,43,107,0.08);
+  --shadow-md:  0 4px 16px rgba(27,43,107,0.10);
+  --shadow-lg:  0 8px 32px rgba(27,43,107,0.12);
+}
+
+:root {
+  --background:          #FAFAF8;
+  --foreground:          #1A1814;
+  --card:                #FFFFFF;
+  --card-foreground:     #1A1814;
+  --popover:             #FFFFFF;
+  --popover-foreground:  #1A1814;
+  --primary:             #1B2B6B;
+  --primary-foreground:  #FFFFFF;
+  --secondary:           #E8ECF8;
+  --secondary-foreground: #1B2B6B;
+  --muted:               #F5F0E8;
+  --muted-foreground:    #8A8480;
+  --accent:              #E8ECF8;
+  --accent-foreground:   #1B2B6B;
+  --destructive:         #D84040;
+  --border:              #E5E0D5;
+  --input:               #E5E0D5;
+  --ring:                #1B2B6B;
+  --radius:              12px;
+  --sidebar:             #FFFFFF;
+  --sidebar-foreground:  #1A1814;
+  --sidebar-primary:     #1B2B6B;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent:      #E8ECF8;
+  --sidebar-accent-foreground: #1B2B6B;
+  --sidebar-border:      #E5E0D5;
+  --sidebar-ring:        #1B2B6B;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #1A1814;
+  }
+  html {
+    @apply font-sans bg-background;
+  }
+  h1 { font-size: 28px; font-weight: 700; }
+  h2 { font-size: 22px; font-weight: 700; }
+  h3 { font-size: 18px; font-weight: 600; }
+}
+
+/* Vastoq utility classes */
+.shadow-vastoq-sm  { box-shadow: 0 1px 3px rgba(27,43,107,0.08); }
+.shadow-vastoq-md  { box-shadow: 0 4px 16px rgba(27,43,107,0.10); }
+.shadow-vastoq-lg  { box-shadow: 0 8px 32px rgba(27,43,107,0.12); }
+
+.label-uppercase {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.display-text {
+  font-size: 52px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+}
+
+/* Watermark text for city branding */
+.city-watermark {
+  position: absolute;
+  bottom: -20px;
+  right: -10px;
+  font-size: clamp(80px, 18vw, 200px);
+  font-weight: 800;
+  color: white;
+  opacity: 0.04;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  letter-spacing: -4px;
+  line-height: 1;
+}
