@@ -31,6 +31,7 @@ export interface ListingFilters {
   max_rent?: number
 
   page?: number
+  per_page?: number
 }
 
 export async function listListings(

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ok, error } from "@/lib/api/response";
-import { requireAuth } from "@/lib/auth";
-import { unlockListing } from "@/lib/services/listings.service";
+import { requireRole } from "@/lib/auth";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // POST /api/listings/:id/unlock
 export async function POST(
@@ -9,19 +10,31 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const guard = await requireAuth(req);
+
+  // Only tenants (and admin) can unlock listings
+  const guard = await requireRole(req, "tenant", "admin");
   if (guard instanceof NextResponse) return guard;
 
-  const result = unlockListing(guard.session, id);
-  if ("error" in result) {
-    const statusMap: Record<string, number> = {
-      NOT_FOUND: 404,
-      LISTING_INACTIVE: 410,
-      AADHAAR_REQUIRED: 403,
-      INSUFFICIENT_CREDITS: 402,
-    };
-    return error(result.error, statusMap[result.code] ?? 400, result.code);
-  }
+  try {
+    const body = await req.json().catch(() => ({}));
 
-  return ok({ ...result.unlock, alreadyUnlocked: result.alreadyUnlocked });
+    const res = await fetch(`${API_URL}/listings/${id}/unlock`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        user_id:     guard.session.userId,   // always from session, never from client
+        coupon_code: body.coupon_code ?? undefined,
+      }),
+    });
+
+    const json = await res.json();
+
+    if (!res.ok) {
+      return error(json.message ?? json.error?.message ?? "Unlock failed", res.status);
+    }
+
+    return ok(json.data);
+  } catch {
+    return error("Unable to connect to backend", 500);
+  }
 }

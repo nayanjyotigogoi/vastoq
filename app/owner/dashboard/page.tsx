@@ -16,28 +16,12 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 const STATUS_CONFIG = {
-  approved: {
-    label: 'Live',
-    color: 'bg-[#E1F5EE] text-[#1D9E75]',
-  },
-  pending: {
-    label: 'Pending review',
-    color: 'bg-[#FEF3DC] text-[#E8A020]',
-  },
-  rejected: {
-    label: 'Rejected',
-    color: 'bg-[#FDEAEA] text-[#D84040]',
-  },
-}
-
-type DashboardUser = {
-  id: number
-  name: string
-  phone: string
-  role: string
-  is_verified?: boolean
+  approved: { label: 'Live',           color: 'bg-[#E1F5EE] text-[#1D9E75]' },
+  pending:  { label: 'Pending review', color: 'bg-[#FEF3DC] text-[#E8A020]' },
+  rejected: { label: 'Rejected',       color: 'bg-[#FDEAEA] text-[#D84040]' },
 }
 
 type DashboardListing = {
@@ -52,32 +36,18 @@ type DashboardListing = {
 }
 
 export default function OwnerDashboard() {
-  const [user, setUser] = useState<DashboardUser | null>(null)
+  const { user, loading: userLoading } = useCurrentUser()
   const [listings, setListings] = useState<DashboardListing[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function loadDashboard() {
+    if (!user?.userId) return
+
+    async function loadListings() {
       try {
-        const [profileRes, listingsRes] = await Promise.all([
-          fetch('/api/auth/me'),
-          fetch('/api/listings/my-listings'),
-        ])
-
-        const profileJson = await profileRes.json()
-        const listingsJson = await listingsRes.json()
-
-        setUser(
-          profileJson.data?.user ??
-          profileJson.data ??
-          null
-        )
-
-        setListings(
-          listingsJson.data?.data ??
-          listingsJson.data ??
-          []
-        )
+        const res  = await fetch('/api/listings/my-listings', { credentials: 'include' })
+        const json = await res.json()
+        setListings(json.data?.data ?? json.data ?? [])
       } catch (err) {
         console.error(err)
       } finally {
@@ -85,8 +55,8 @@ export default function OwnerDashboard() {
       }
     }
 
-    loadDashboard()
-  }, [])
+    loadListings()
+  }, [user])
 
   const totalRevenue = listings.reduce(
     (sum, item) => sum + item.unlock_count * 20,
@@ -103,7 +73,7 @@ export default function OwnerDashboard() {
     0
   )
 
-  if (loading) {
+  if (userLoading || loading) {
     return (
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">
         Loading dashboard...
@@ -137,12 +107,7 @@ export default function OwnerDashboard() {
                   Owner
                 </span>
 
-                {user?.is_verified && (
-                  <span className="px-2 py-0.5 bg-[#E1F5EE] text-[#1D9E75] text-[11px] font-bold rounded-full">
-                    ID Verified
-                  </span>
-                )}
-              </div>
+                </div>
             </div>
           </div>
 

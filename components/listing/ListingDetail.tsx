@@ -1,10 +1,20 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { MapPin, Heart, Share2, Lock, Phone, MessageSquare, Copy, Check, Wifi, Wind, Zap, Car, Droplets, UtensilsCrossed, ShieldCheck, Layers } from 'lucide-react'
 import { VastoqBadge, VerifiedAvatar, Chip } from '@/components/ui/vastoq-badge'
 import UnlockGate from './UnlockGate'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { Listing } from './ListingCard'
+
+// Leaflet must not be server-side rendered
+const ListingMap = dynamic(() => import('./ListingMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-56 rounded-[14px] bg-[#E8ECF8] animate-pulse border border-[#E5E0D5]" />
+  ),
+})
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
   WiFi: <Wifi size={14} />,
@@ -26,13 +36,13 @@ interface ListingDetailProps {
 }
 
 export default function ListingDetail({ listing }: ListingDetailProps) {
-  const [activePhoto, setActivePhoto] = useState(0)
-  const [saved, setSaved] = useState(false)
-  const [showUnlock, setShowUnlock] = useState(false)
-  const [unlocked, setUnlocked] = useState(!listing.isLocked)
-  const [copied, setCopied] = useState(false)
+  const { user } = useCurrentUser()
 
-  const [userId, setUserId] = useState<number | null>(null)
+  const [activePhoto, setActivePhoto] = useState(0)
+  const [saved,       setSaved]       = useState(false)
+  const [showUnlock,  setShowUnlock]  = useState(false)
+  const [unlocked,    setUnlocked]    = useState(!listing.isLocked)
+  const [copied,      setCopied]      = useState(false)
 
   const [unlockedData, setUnlockedData] = useState<{
     phone?: string
@@ -43,31 +53,30 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
 
   const handleUnlockSuccess = (data: any) => {
     setUnlockedData(data)
-
     setUnlocked(true)
-
     setShowUnlock(false)
   }
 
+  // Check existing unlock on mount (so returning users see contact immediately)
   useEffect(() => {
-    async function loadUser() {
+    if (!user?.userId || listing.isLocked === false) return
+
+    async function checkExistingUnlock() {
       try {
-        const res = await fetch('/api/auth/me', {
+        const res  = await fetch(`/api/listings/${listing.id}/unlock-status`, {
           credentials: 'include',
         })
-
+        if (!res.ok) return
         const json = await res.json()
-
-        if (res.ok) {
-          setUserId(json.data.id)
+        if (json.data?.unlocked) {
+          setUnlockedData(json.data)
+          setUnlocked(true)
         }
-      } catch (err) {
-        console.error(err)
-      }
+      } catch { /* silent */ }
     }
 
-    loadUser()
-  }, [])
+    checkExistingUnlock()
+  }, [user, listing.id, listing.isLocked])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -191,46 +200,52 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
           {/* Map section */}
           <div className="mb-6">
             <h2 className="text-[16px] font-bold text-[#1A1814] mb-3">Location</h2>
-            <div className="relative rounded-[14px] overflow-hidden border border-[#E5E0D5] h-56 bg-[#E8ECF8] flex items-center justify-center">
-              {unlocked ? (
-                <div className="text-center">
-                  <MapPin size={28} className="text-[#1B2B6B] mx-auto mb-2" />
-                  <p className="text-[13px] font-semibold text-[#1B2B6B]">Exact location visible</p>
-                 <p className="text-[11px] text-[#4A4640]">
-                  {listing.locality}
-                </p>
 
-                {(
-                  unlockedData?.latitude ||
-                  listing.latitude
-                ) &&
-                (
-                  unlockedData?.longitude ||
-                  listing.longitude
-                ) && (
-                  <p className="text-[11px] text-[#8A8480] mt-1">
-                    {unlockedData?.latitude || listing.latitude},
-                    {' '}
-                    {unlockedData?.longitude || listing.longitude}
-                  </p>
-                )}
-                </div>
-              ) : (
-                <div className="text-center">
-                  <div className="w-20 h-20 rounded-full border-4 border-[#1B2B6B]/30 bg-[#1B2B6B]/10 flex items-center justify-center mx-auto mb-3">
-                    <Lock size={20} className="text-[#1B2B6B]" />
+            {/* Resolve coordinates: prefer unlocked data, fall back to listing coords */}
+            {(() => {
+              const lat = parseFloat(String(unlockedData?.latitude  ?? listing.latitude  ?? ''))
+              const lng = parseFloat(String(unlockedData?.longitude ?? listing.longitude ?? ''))
+
+              if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+                // No coordinates at all — show text-only fallback
+                return (
+                  <div className="h-56 rounded-[14px] border border-[#E5E0D5] bg-[#E8ECF8] flex items-center justify-center">
+                    <div className="text-center">
+                      <MapPin size={22} className="text-[#1B2B6B] mx-auto mb-2" />
+                      <p className="text-[13px] font-semibold text-[#1A1814]">{listing.locality}</p>
+                      {!unlocked && (
+                        <button
+                          onClick={() => setShowUnlock(true)}
+                          className="mt-3 px-4 py-2 bg-[#1B2B6B] text-white text-[13px] font-semibold rounded-[8px] hover:bg-[#2D3E8C] transition-colors"
+                        >
+                          Unlock location
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-[13px] font-semibold text-[#1A1814] mb-1">Approximate area shown</p>
-                  <p className="text-[12px] text-[#4A4640] mb-3">Unlock to see exact location — ₹20</p>
-                  <button
-                    onClick={() => setShowUnlock(true)}
-                    className="px-4 py-2 bg-[#1B2B6B] text-white text-[13px] font-semibold rounded-[8px] hover:bg-[#2D3E8C] transition-colors"
-                  >
-                    Unlock location
-                  </button>
-                </div>
-              )}
-            </div>
+                )
+              }
+
+              return (
+                <>
+                  <ListingMap
+                    lat={lat}
+                    lng={lng}
+                    unlocked={unlocked}
+                    locality={listing.locality}
+                  />
+                  {!unlocked && (
+                    <button
+                      onClick={() => setShowUnlock(true)}
+                      className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border border-[#1B2B6B] text-[#1B2B6B] text-[13px] font-semibold rounded-[10px] hover:bg-[#E8ECF8] transition-colors"
+                    >
+                      <Lock size={14} />
+                      Unlock to narrow down location
+                    </button>
+                  )}
+                </>
+              )
+            })()}
           </div>
 
           {/* Reviews */}
@@ -343,7 +358,6 @@ const phone =
         <UnlockGate
           type="listing"
           targetId={listing.id}
-          userId={userId || 0}
           subjectName={listing.title}
           subjectLocality={listing.locality}
           onClose={() => setShowUnlock(false)}

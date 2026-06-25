@@ -35,8 +35,9 @@ export async function POST(req: NextRequest) {
 
     await setSessionCookie({
       userId: String(user.id),
-      phone: user.phone,
-      role: user.role,
+      phone:  user.phone,
+      name:   user.name ?? "",
+      role:   user.role,
     });
 
     return ok({

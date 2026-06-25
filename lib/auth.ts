@@ -99,3 +99,16 @@ export async function requireRole(
   }
   return { session };
 }
+
+// ─── Refresh session cookie with updated user data ────────────────────────────
+
+export async function refreshSession(
+  updates: Partial<Pick<SessionPayload, "name" | "role">>
+) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE_NAME)?.value;
+  if (!token) return;
+  const current = await verifyToken(token);
+  if (!current) return;
+  await setSessionCookie({ ...current, ...updates });
+}

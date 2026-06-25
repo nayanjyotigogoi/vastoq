@@ -7,6 +7,7 @@ import ActionCards from '@/components/home/ActionCards'
 import FeaturedListings from '@/components/home/FeaturedListings'
 import FurnitureTeaser from '@/components/home/FurnitureTeaser'
 import HowItWorks from '@/components/home/HowItWorks'
+import HomeMapSection from '@/components/home/HomeMapSection'
 
 export default function HomePage() {
   return (
@@ -16,6 +17,7 @@ export default function HomePage() {
         <HeroSection />
         <TrustBar />
         <ActionCards />
+        <HomeMapSection />
         <FeaturedListings />
         <HowItWorks />
         <FurnitureTeaser />

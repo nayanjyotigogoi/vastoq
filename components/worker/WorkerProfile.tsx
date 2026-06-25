@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Star, MapPin, Lock, Copy, Check, MessageSquare } from 'lucide-react'
+import { useState, Fragment, useEffect } from 'react'
+import { Star, MapPin, Lock, Copy, Check, MessageSquare, Loader2 } from 'lucide-react'
 import { VerifiedAvatar, Chip } from '@/components/ui/vastoq-badge'
 import UnlockGate from '@/components/listing/UnlockGate'
 import type { Worker } from './WorkerCard'
@@ -9,7 +9,6 @@ import type { Worker } from './WorkerCard'
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const SLOTS = ['Morning', 'Afternoon', 'Evening']
 
-// Mock availability — all slots open for verified workers
 const mockAvailability = (worker: Worker) =>
   DAYS.reduce<Record<string, string[]>>((acc, day) => {
     acc[day] = worker.isVerified ? SLOTS.slice(0, 2) : []
@@ -17,10 +16,30 @@ const mockAvailability = (worker: Worker) =>
   }, {})
 
 export default function WorkerProfile({ worker }: { worker: Worker }) {
-  const [showUnlock, setShowUnlock] = useState(false)
-  const [unlocked, setUnlocked] = useState(worker.isUnlocked ?? false)
-  const [copied, setCopied] = useState(false)
+  const [showUnlock,    setShowUnlock]    = useState(false)
+  const [unlocked,      setUnlocked]      = useState(worker.isUnlocked ?? false)
+  const [revealedPhone, setRevealedPhone] = useState<string | undefined>(worker.phone)
+  const [copied,        setCopied]        = useState(false)
+  const [statusLoading, setStatusLoading] = useState(true)
   const availability = mockAvailability(worker)
+
+  // Check if user has already unlocked this worker
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/workers/${worker.id}/unlock`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelled) return
+        const data = json?.data
+        if (data?.unlocked) {
+          setUnlocked(true)
+          if (data.phone) setRevealedPhone(data.phone)
+        }
+      })
+      .catch(() => {/* not logged in or network error — stay locked */})
+      .finally(() => { if (!cancelled) setStatusLoading(false) })
+    return () => { cancelled = true }
+  }, [worker.id])
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
@@ -92,8 +111,8 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
                 <div key={d} className="text-[10px] font-bold text-[#8A8480] uppercase">{d}</div>
               ))}
               {SLOTS.map((slot) => (
-                <>
-                  <div key={slot} className="text-[9px] text-[#8A8480] text-right pr-1 flex items-center justify-end">{slot.slice(0, 3)}</div>
+                <Fragment key={slot}>
+                  <div className="text-[9px] text-[#8A8480] text-right pr-1 flex items-center justify-end">{slot.slice(0, 3)}</div>
                   {DAYS.map((day) => (
                     <div
                       key={`${day}-${slot}`}
@@ -101,7 +120,7 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
                       title={`${day} ${slot}: ${availability[day]?.includes(slot) ? 'Available' : 'Not available'}`}
                     />
                   ))}
-                </>
+                </Fragment>
               ))}
             </div>
             <div className="flex items-center gap-4 mt-3 text-[11px] text-[#8A8480]">
@@ -132,20 +151,27 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
               Unlock {worker.name}&apos;s phone number to hire directly.
             </p>
 
-            {!worker.isVerified ? (
+            {statusLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 size={20} className="animate-spin text-[#1B2B6B]" />
+              </div>
+            ) : !worker.isVerified ? (
               <div className="bg-[#FEF3DC] rounded-[10px] p-3 text-[12px] text-[#E8A020] font-medium">
                 This worker has not completed Aadhaar verification yet. Contact not available.
               </div>
-            ) : unlocked && worker.phone ? (
+            ) : unlocked && revealedPhone ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 p-3 bg-[#E1F5EE] rounded-[10px]">
-                  <span className="text-[14px] font-bold text-[#1A1814] flex-1">{worker.phone}</span>
-                  <button onClick={() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }} aria-label="Copy phone">
+                  <span className="text-[14px] font-bold text-[#1A1814] flex-1">{revealedPhone}</span>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(revealedPhone ?? ''); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+                    aria-label="Copy phone"
+                  >
                     {copied ? <Check size={13} className="text-[#1D9E75]" /> : <Copy size={13} className="text-[#4A4640]" />}
                   </button>
                 </div>
                 <a
-                  href={`https://wa.me/91${(worker.phone ?? '').replace(/\D/g, '')}`}
+                  href={`https://wa.me/91${(revealedPhone ?? '').replace(/\D/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full flex items-center justify-center gap-2 py-3 bg-[#25D366] text-white text-[14px] font-bold rounded-[10px] hover:bg-[#1aac52] transition-colors min-h-[48px]"
@@ -178,10 +204,15 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
       {showUnlock && (
         <UnlockGate
           type="worker"
+          targetId={worker.id}
           subjectName={worker.name}
           subjectLocality={worker.localities[0]}
           onClose={() => setShowUnlock(false)}
-          onSuccess={() => { setUnlocked(true); setShowUnlock(false) }}
+          onSuccess={(data) => {
+            setUnlocked(true)
+            if (data?.phone) setRevealedPhone(data.phone)
+            setShowUnlock(false)
+          }}
         />
       )}
     </div>

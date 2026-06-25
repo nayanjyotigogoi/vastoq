@@ -4,7 +4,7 @@ import TopNav from '@/components/nav/TopNav'
 import MobileNav from '@/components/nav/MobileNav'
 import Footer from '@/components/nav/Footer'
 import Link from 'next/link'
-import { Heart, Lock, MessageSquare, ChevronRight, Search } from 'lucide-react'
+import { Heart, Lock, MessageSquare, ChevronRight, Search, HardHat } from 'lucide-react'
 import ListingCard from '@/components/listing/ListingCard'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useEffect, useState } from 'react'
@@ -44,6 +44,12 @@ const QUICK_LINKS = [
     color: 'bg-[#E1F5EE] text-[#1D9E75]',
   },
   {
+    icon: HardHat,
+    label: 'Workers',
+    href: '#worker-unlocks',
+    color: 'bg-[#E8ECF8] text-[#1B2B6B]',
+  },
+  {
     icon: MessageSquare,
     label: 'Messages',
     href: '/messages',
@@ -53,29 +59,19 @@ const QUICK_LINKS = [
 
 export default function TenantDashboard() {
   const { user, loading } = useCurrentUser()
-  
-  const [dashboardData, setDashboardData] =
-    useState<any>(null)
 
-    useEffect(() => {
+  const [dashboardData, setDashboardData] = useState<any>(null)
 
-    if (!user?.id) return
+  useEffect(() => {
+    if (!user?.userId) return
 
     async function loadDashboard() {
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/dashboard/tenant?user_id=${user.id}`
-      )
-
+      const res = await fetch('/api/dashboard/tenant', { credentials: 'include' })
       const json = await res.json()
-
-      if (res.ok) {
-        setDashboardData(json.data)
-      }
+      if (res.ok) setDashboardData(json.data)
     }
 
     loadDashboard()
-
   }, [user])
 
   // const unlockedListings = MOCK_UNLOCKED.map((u) => ({
@@ -108,11 +104,9 @@ export default function TenantDashboard() {
                 {user?.role}
               </span>
 
-              {user?.is_verified && (
-                <span className="px-2 py-0.5 bg-[#E8ECF8] text-[#1B2B6B] text-[11px] font-bold rounded-full">
-                  Mobile verified
-                </span>
-              )}
+              <span className="px-2 py-0.5 bg-[#E8ECF8] text-[#1B2B6B] text-[11px] font-bold rounded-full">
+                Mobile verified
+              </span>
             </div>
           </div>
 
@@ -239,20 +233,90 @@ export default function TenantDashboard() {
 
             {(!dashboardData?.unlocks || dashboardData.unlocks.length === 0) && (
               <div className="bg-white rounded-[14px] border border-[#E5E0D5] p-8 text-center">
-                <Lock
-                  size={28}
-                  className="text-[#D0C9BC] mx-auto mb-3"
-                />
-
-                <p className="text-[13px] text-[#8A8480]">
-                  No unlocked contacts yet.
-                </p>
-
+                <Lock size={28} className="text-[#D0C9BC] mx-auto mb-3" />
+                <p className="text-[13px] text-[#8A8480]">No unlocked rental contacts yet.</p>
                 <Link
                   href="/rentals"
                   className="inline-block mt-3 px-4 py-2 bg-[#1B2B6B] text-white text-[12px] font-semibold rounded-[8px] hover:bg-[#2D3E8C] transition-colors"
                 >
                   Browse rentals
+                </Link>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Unlocked workers */}
+        <section className="mb-10" id="worker-unlocks">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[16px] font-bold text-[#1A1814]">Unlocked workers</h2>
+            <Link
+              href="/workers"
+              className="text-[12px] text-[#1B2B6B] font-semibold hover:underline flex items-center gap-1"
+            >
+              Find workers <ChevronRight size={13} />
+            </Link>
+          </div>
+
+          <div className="space-y-3">
+            {dashboardData?.worker_unlocks?.map((unlock: any) =>
+              unlock.worker ? (
+                <div
+                  key={unlock.id}
+                  className="bg-white rounded-[14px] border border-[#E5E0D5] p-4 flex items-start gap-4 shadow-vastoq-sm"
+                >
+                  {/* Avatar */}
+                  <div className="w-12 h-12 rounded-full bg-[#E8ECF8] flex items-center justify-center flex-shrink-0">
+                    <span className="text-[16px] font-bold text-[#1B2B6B]">
+                      {unlock.worker.name?.[0] ?? '?'}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-[14px] font-semibold text-[#1A1814]">{unlock.worker.name}</p>
+                      {unlock.worker.is_verified && (
+                        <span className="text-[10px] font-bold text-[#1D9E75] bg-[#E1F5EE] px-2 py-0.5 rounded-full">Verified</span>
+                      )}
+                    </div>
+
+                    <p className="text-[12px] text-[#4A4640]">
+                      {unlock.worker.category}{unlock.worker.locality ? ` · ${unlock.worker.locality}` : ''}
+                    </p>
+
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
+                      <span className="text-[13px] font-bold text-[#1D9E75]">
+                        +91 {unlock.worker.phone}
+                      </span>
+                      <a
+                        href={`https://wa.me/91${(unlock.worker.phone ?? '').replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-semibold text-white bg-[#25D366] px-2.5 py-1 rounded-full hover:bg-[#1aac52] transition-colors"
+                      >
+                        WhatsApp
+                      </a>
+                      <Link
+                        href={`/workers/${unlock.worker.id}`}
+                        className="text-[11px] text-[#1B2B6B] font-semibold hover:underline"
+                      >
+                        View profile →
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ) : null
+            )}
+
+            {(!dashboardData?.worker_unlocks || dashboardData.worker_unlocks.length === 0) && (
+              <div className="bg-white rounded-[14px] border border-[#E5E0D5] p-8 text-center">
+                <HardHat size={28} className="text-[#D0C9BC] mx-auto mb-3" />
+                <p className="text-[13px] text-[#8A8480]">No unlocked workers yet.</p>
+                <Link
+                  href="/workers"
+                  className="inline-block mt-3 px-4 py-2 bg-[#1B2B6B] text-white text-[12px] font-semibold rounded-[8px] hover:bg-[#2D3E8C] transition-colors"
+                >
+                  Browse workers
                 </Link>
               </div>
             )}

@@ -4,7 +4,6 @@ import { requireAuth } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// POST /api/coupons/validate
 export async function POST(req: NextRequest) {
   const guard = await requireAuth(req);
   if (guard instanceof NextResponse) return guard;
@@ -12,19 +11,22 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const res = await fetch(`${API_URL}/coupons/validate`, {
+    const res = await fetch(`${API_URL}/saved-listings/toggle`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ code: body.code }),
+      body: JSON.stringify({
+        user_id:    guard.session.userId,
+        listing_id: body.listing_id,
+      }),
     });
 
     const json = await res.json();
 
     if (!res.ok) {
-      return error(json.error?.message ?? "Invalid coupon", res.status);
+      return error(json.error?.message ?? "Failed to toggle saved listing", res.status);
     }
 
-    return ok(json.data);
+    return ok({ saved: json.saved });
   } catch {
     return error("Unable to connect to backend", 500);
   }

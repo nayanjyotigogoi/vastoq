@@ -48,6 +48,10 @@ const filters = {
   page: searchParams.get('page')
     ? Number(searchParams.get('page'))
     : 1,
+
+  per_page: searchParams.get('per_page')
+    ? Number(searchParams.get('per_page'))
+    : undefined,
 }
     const listings = await listListings(filters);
 

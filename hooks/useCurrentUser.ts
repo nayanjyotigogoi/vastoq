@@ -1,26 +1,34 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { getCurrentUser } from '@/lib/api/user'
-import { User } from '@/lib/types'
+
+export type SessionUser = {
+  userId: string
+  phone: string
+  name: string
+  role: 'tenant' | 'owner' | 'worker' | 'admin'
+}
 
 export function useCurrentUser() {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<SessionUser | null>(null)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     try {
-      const data = await getCurrentUser()
+      const res = await fetch('/api/auth/session', {
+        credentials: 'include',
+        cache: 'no-store',
+      })
 
-      if (!data) {
+      if (!res.ok) {
         setUser(null)
         return
       }
 
-      setUser(data)
-
-    } catch (error) {
-      console.error('Failed to load current user:', error)
+      const json = await res.json()
+      setUser(json.data ?? null)
+    } catch {
+      setUser(null)
     } finally {
       setLoading(false)
     }
@@ -30,9 +38,5 @@ export function useCurrentUser() {
     load()
   }, [load])
 
-  return {
-    user,
-    loading,
-    reload: load,
-  }
+  return { user, loading, reload: load }
 }

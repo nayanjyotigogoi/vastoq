@@ -276,6 +276,7 @@ export interface OtpRecord {
 export interface SessionPayload {
   userId: string;
   phone: string;
+  name: string;
   role: Role;
   iat?: number;
   exp?: number;

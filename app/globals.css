@@ -143,3 +143,6 @@
   letter-spacing: -4px;
   line-height: 1;
 }
+
+/* Hide scrollbars on carousel tracks */
+.carousel-track::-webkit-scrollbar { display: none; }

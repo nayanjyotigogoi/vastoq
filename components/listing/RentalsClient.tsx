@@ -1,11 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Search, SlidersHorizontal, MapPin, X, Map, List, Loader2 } from 'lucide-react'
-import ListingCard from './ListingCard'
+import dynamic from 'next/dynamic'
+import { Search, SlidersHorizontal, X, Map, List, Loader2, MapPin, Navigation } from 'lucide-react'
+import LocalityCarousel from './LocalityCarousel'
+import { useUserLocation } from '@/hooks/useUserLocation'
 import type { Listing } from './ListingCard'
 import type { Listing as ApiListing } from '@/lib/types'
+
+const RentalsMapView = dynamic(() => import('./RentalsMapView'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full rounded-[14px] border border-[#E5E0D5] bg-[#E8ECF8] animate-pulse shadow-vastoq-sm"
+         style={{ height: 'calc(100vh - 260px)', minHeight: 420 }} />
+  ),
+})
 
 // Normalise API listing → UI listing shape
 function normalise(l: any): Listing {
@@ -58,7 +68,12 @@ function normalise(l: any): Listing {
       verified: l.owner?.is_verified ?? false,
     },
 
-    isLocked: true,
+    isLocked:    true,
+    description: l.description ?? undefined,
+
+    latitude:  l.latitude  != null ? Number(l.latitude)  : undefined,
+    longitude: l.longitude != null ? Number(l.longitude) : undefined,
+    bhkRaw:    l.bhk_type ?? undefined,
   }
 }
 
@@ -85,16 +100,6 @@ const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest' },
 ]
 
-// Group listings by locality
-function groupByLocality(listings: Listing[]) {
-  const groups: Record<string, Listing[]> = {}
-  for (const l of listings) {
-    const loc = l.locality.split(',')[0].trim()
-    if (!groups[loc]) groups[loc] = []
-    groups[loc].push(l)
-  }
-  return groups
-}
 
 export default function RentalsClient() {
   const [locality, setLocality] = useState('')
@@ -109,17 +114,25 @@ export default function RentalsClient() {
   const [allListings, setAllListings] = useState<Listing[]>([])
   const [totalListings, setTotalListings] = useState(0)
   const [loading, setLoading] = useState(true)
+  // Track whether location was auto-applied (so user can dismiss the pill)
+  const [locationApplied, setLocationApplied] = useState(false)
+  const [locationDisplay, setLocationDisplay] = useState('') // suburb-level label for the pill
+  const [userLatLng, setUserLatLng] = useState<{ lat: number; lng: number } | undefined>()
+  const locationInitialized = useRef(false)
+  const initialFetched = useRef(false)         // true once the very first fetch fires
+  const fallbackTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchParams = useSearchParams()
+  const locationState = useUserLocation()
 
-    const fetchListings = async () => {
+  // searchOverride lets us pass the city directly without waiting for state to update
+  const fetchListings = async (searchOverride?: string) => {
     try {
       setLoading(true)
 
       const params = new URLSearchParams()
 
-      if (locality.trim()) {
-        params.append('search', locality)
-      }
+      const searchTerm = searchOverride !== undefined ? searchOverride : locality.trim()
+      // (search is handled inside fetchWithFallback below)
 
       if (budget !== null) {
         params.append('max_rent', String(budget))
@@ -132,6 +145,9 @@ export default function RentalsClient() {
       if (sort !== 'relevant') {
         params.append('sort', sort)
       }
+
+      // Always fetch up to 500 — carousel groups all localities at once
+      params.append('per_page', '500')
 
       if (selectedTypes.length === 1) {
         const typeMap: Record<string, string> = {
@@ -179,13 +195,24 @@ export default function RentalsClient() {
         }
       }
 
-      const response = await fetch(
-        `/api/listings?${params.toString()}`
-      )
+      // Progressive search: if the full term returns 0, retry with each
+      // shorter prefix (word by word) until we get results.
+      // e.g. "Dibrugarh West" → "Dibrugarh" → no search term
+      async function fetchWithFallback(searchTerm: string): Promise<any> {
+        const p = new URLSearchParams(params)
+        if (searchTerm) p.set('search', searchTerm)
+        else p.delete('search')
+        const res  = await fetch(`/api/listings?${p.toString()}`)
+        const data = await res.json()
+        const total: number = data?.data?.data?.total ?? 0
+        if (total > 0 || !searchTerm) return data
+        // Try dropping the last word and retry
+        const words = searchTerm.trim().split(/\s+/)
+        if (words.length <= 1) return data           // single word, no more fallback
+        return fetchWithFallback(words.slice(0, -1).join(' '))
+      }
 
-      const json = await response.json()
-
-      
+      const json = await fetchWithFallback(searchTerm)
 
       setTotalListings(
         json?.data?.data?.total ?? 0
@@ -209,45 +236,79 @@ export default function RentalsClient() {
     }
   }
 
+  // ── Effect 1: apply URL search params on mount ──────────────────────────────
   useEffect(() => {
-  const search = searchParams.get('search')
-  const maxRent = searchParams.get('max_rent')
-  const propertyType = searchParams.get('property_type')
-
-  if (search) {
-    setLocality(search)
-  }
-
-  if (maxRent) {
-    setBudget(Number(maxRent))
-  }
-
-  if (propertyType) {
-    const reverseTypeMap: Record<string, string> = {
-      flat: 'Flat',
-      pg: 'PG',
-      room: 'Room',
-      shared_room: 'Shared Room',
-      house: 'House',
+    const search      = searchParams.get('search')
+    const maxRent     = searchParams.get('max_rent')
+    const propertyType = searchParams.get('property_type')
+    if (search)      setLocality(search)
+    if (maxRent)     setBudget(Number(maxRent))
+    if (propertyType) {
+      const map: Record<string, string> = { flat:'Flat', pg:'PG', room:'Room', shared_room:'Shared Room', house:'House' }
+      if (map[propertyType]) setSelectedTypes([map[propertyType]])
     }
-
-    if (reverseTypeMap[propertyType]) {
-      setSelectedTypes([
-        reverseTypeMap[propertyType]
-      ])
-    }
-  }
   }, [searchParams])
 
+  // ── Effect 2: location resolves → first fetch ────────────────────────────────
+  // We never fire the initial fetch until we know the user's location (or it fails).
+  // If the URL already has ?search= we skip location and fetch straight away.
   useEffect(() => {
-    fetchListings()
+    if (locationInitialized.current) return
+
+    const urlSearch = searchParams.get('search')
+
+    // URL has an explicit search → fetch immediately, don't wait for location
+    if (urlSearch) {
+      locationInitialized.current = true
+      if (fallbackTimer.current) clearTimeout(fallbackTimer.current)
+      if (!initialFetched.current) {
+        initialFetched.current = true
+        fetchListings(urlSearch)
+      }
+      return
+    }
+
+    if (locationState.status === 'requesting' || locationState.status === 'idle') return
+
+    // Location resolved (ready / denied / error)
+    locationInitialized.current = true
+    if (fallbackTimer.current) clearTimeout(fallbackTimer.current)
+
+    if (locationState.status === 'ready') {
+      const { city, displayName, lat, lng } = locationState.location
+      setLocality(city)
+      setLocationDisplay(displayName)
+      setLocationApplied(true)
+      setUserLatLng({ lat, lng })
+      initialFetched.current = true
+      fetchListings(city)   // pass city directly — state update is async
+    } else {
+      // denied / error — load everything
+      initialFetched.current = true
+      fetchListings('')
+    }
+  }, [locationState.status, searchParams])
+
+  // ── Effect 3: 5-second hard timeout ─────────────────────────────────────────
+  // If location permission dialog is ignored or browser is slow, don't leave the
+  // page blank forever — load all listings as fallback.
+  useEffect(() => {
+    if (searchParams.get('search')) return   // URL search → no need for timer
+    fallbackTimer.current = setTimeout(() => {
+      if (!initialFetched.current) {
+        initialFetched.current = true
+        locationInitialized.current = true
+        fetchListings('')
+      }
+    }, 5000)
+    return () => { if (fallbackTimer.current) clearTimeout(fallbackTimer.current) }
   }, [])
 
+  // ── Effect 4: debounced re-fetch when filters change ────────────────────────
+  // Only fires after the initial fetch has already happened.
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      fetchListings()
-    }, 1000)
-
+    if (!initialFetched.current) return
+    const timeout = setTimeout(() => fetchListings(), 800)
     return () => clearTimeout(timeout)
   }, [
     locality,
@@ -257,11 +318,21 @@ export default function RentalsClient() {
     selectedFurnishing,
     verifiedOnly,
     sort,
+    viewMode,
   ])
 
   const filtered = allListings
 
-  const groups = groupByLocality(filtered)
+  // Group by locality name (part before first comma), sorted by count desc
+  const localityGroups: Array<[string, Listing[]]> = (() => {
+    const rec: Record<string, Listing[]> = {}
+    for (const l of filtered) {
+      const key = l.locality.split(',')[0].trim()
+      if (rec[key]) rec[key].push(l)
+      else rec[key] = [l]
+    }
+    return Object.entries(rec).sort((a, b) => b[1].length - a[1].length)
+  })()
 
   const toggleFilter = <T,>(arr: T[], val: T, set: (a: T[]) => void) =>
     set(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val])
@@ -279,14 +350,38 @@ export default function RentalsClient() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-[28px] font-bold text-[#1A1814] mb-1">
-          {locality.trim()
-            ? `Properties in ${locality}`
-            : 'Rental Properties'}
-        </h1>
-       <p className="text-[14px] text-[#4A4640]">
-        {totalListings} listings found
-      </p>
+        <div className="flex items-center gap-3 flex-wrap mb-1">
+          <h1 className="text-[28px] font-bold text-[#1A1814]">
+            {locality.trim() ? `Properties in ${locality}` : 'Rental Properties'}
+          </h1>
+
+          {/* Location requesting spinner */}
+          {locationState.status === 'requesting' && !locality && (
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8ECF8] text-[#1B2B6B] text-[12px] font-semibold">
+              <Navigation size={12} className="animate-pulse" />
+              Detecting location…
+            </span>
+          )}
+
+          {/* "Near [City]" pill — shown when location was auto-applied */}
+          {locationApplied && locality && (
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E1F5EE] text-[#1D9E75] text-[12px] font-semibold border border-[#1D9E75]/20">
+              <MapPin size={11} />
+              Near {locationDisplay || locality}
+              <button
+                onClick={() => { setLocality(''); setLocationDisplay(''); setLocationApplied(false) }}
+                aria-label="Clear location"
+                className="ml-0.5 hover:text-[#D84040] transition-colors"
+              >
+                <X size={11} />
+              </button>
+            </span>
+          )}
+        </div>
+
+        <p className="text-[14px] text-[#4A4640]">
+          {loading ? 'Loading…' : `${totalListings} listings found`}
+        </p>
       </div>
 
       {/* Search + Sort bar */}
@@ -482,15 +577,19 @@ export default function RentalsClient() {
         </div>
       )}
 
-      {/* Map view placeholder */}
+      {/* Map view */}
       {viewMode === 'map' && (
-        <div className="w-full h-96 rounded-[14px] border border-[#E5E0D5] bg-[#E8ECF8] flex items-center justify-center mb-8 shadow-vastoq-sm">
-          <div className="text-center">
-            <MapPin size={32} className="text-[#1B2B6B] mx-auto mb-2" />
-            <p className="text-[14px] font-semibold text-[#1B2B6B]">Map view</p>
-            <p className="text-[12px] text-[#4A4640]">Google Maps integration coming soon</p>
-            <p className="text-[11px] text-[#8A8480] mt-1">Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable</p>
-          </div>
+        <div className="mb-8">
+          {loading ? (
+            <div
+              className="w-full rounded-[14px] border border-[#E5E0D5] bg-[#E8ECF8] animate-pulse shadow-vastoq-sm flex items-center justify-center"
+              style={{ height: 'calc(100vh - 260px)', minHeight: 420 }}
+            >
+              <Loader2 size={28} className="animate-spin text-[#1B2B6B]" />
+            </div>
+          ) : (
+            <RentalsMapView listings={filtered} userLocation={userLatLng} />
+          )}
         </div>
       )}
 
@@ -513,32 +612,13 @@ export default function RentalsClient() {
             Clear filters
           </button>
         </div>
-      ) : (
-        <div className="space-y-8">
-          {Object.entries(groups).map(([loc, items]) => (
-            <div key={loc}>
-              {/* Locality stamp */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-px flex-1 bg-[#E5E0D5]" aria-hidden="true" />
-                <div className="flex items-center gap-2 text-[12px] font-bold text-[#4A4640] uppercase tracking-wider">
-                  <MapPin size={12} className="text-[#8A8480]" />
-                  {loc.toUpperCase()}
-                  <span className="text-[#8A8480] font-normal normal-case tracking-normal">
-                    · {items.length} listing{items.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className="h-px flex-1 bg-[#E5E0D5]" aria-hidden="true" />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {items.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
-                ))}
-              </div>
-            </div>
+      ) : viewMode === 'list' ? (
+        <div>
+          {localityGroups.map(([loc, listings]) => (
+            <LocalityCarousel key={loc} locality={loc} listings={listings} />
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
