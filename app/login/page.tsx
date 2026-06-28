@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Phone, Eye, EyeOff, Loader2, Check } from 'lucide-react'
@@ -39,6 +39,11 @@ function LoginForm() {
   const [regPhone, setRegPhone] = useState('')
   const [regPw,    setRegPw]    = useState('')
   const [regRole,  setRegRole]  = useState('')
+
+  // Deep-link: /login?tab=register opens the Create account form directly
+  useEffect(() => {
+    if (searchParams.get('tab') === 'register') setTab('register')
+  }, [searchParams])
 
   const resolveRedirect = (apiPath: string) => {
     const next = searchParams.get('next')

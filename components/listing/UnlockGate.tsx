@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Lock, X, Check, Loader2, Tag, Phone, MapPin, CreditCard, AlertCircle } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { Lock, X, Check, Loader2, Tag, Phone, MapPin, CreditCard, AlertCircle, LogIn, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { loadRazorpay } from '@/lib/razorpay'
 import { usePrices } from '@/hooks/usePrices'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 interface UnlockGateProps {
   type: 'listing' | 'worker'
@@ -28,6 +30,8 @@ export default function UnlockGate({
 }: UnlockGateProps) {
   const prices = usePrices()
   const unlockPrice = type === 'listing' ? prices.listing_unlock : prices.worker_unlock
+  const { user, loading: authLoading } = useCurrentUser()
+  const pathname = usePathname()
 
   const [coupon,       setCoupon]       = useState('')
   const [couponState,  setCouponState]  = useState<CouponState>('idle')
@@ -227,6 +231,112 @@ export default function UnlockGate({
   }
 
   const canUnlock = couponState === 'valid'
+
+  // ── Auth-gated screen ───────────────────────────────────────────────────────
+  const loginUrl = `/login?next=${encodeURIComponent(pathname)}`
+  const registerUrl = `/login?tab=register&next=${encodeURIComponent(pathname)}`
+
+  const AuthScreen = (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sign in required"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
+    >
+      <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] overflow-hidden shadow-vastoq-lg">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#F5F0E8]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#E8ECF8] flex items-center justify-center flex-shrink-0">
+              <Lock size={17} className="text-[#1B2B6B]" />
+            </div>
+            <div>
+              <h2 className="text-[16px] font-bold text-[#1A1814]">Sign in to unlock</h2>
+              <p className="text-[12px] text-[#8A8480] truncate max-w-[220px]">
+                {subjectName}{subjectLocality ? ` · ${subjectLocality}` : ''}
+              </p>
+            </div>
+          </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-[#F5F0E8] transition-colors"
+              aria-label="Close"
+            >
+              <X size={18} className="text-[#4A4640]" />
+            </button>
+          )}
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-6">
+          {/* What they'll get */}
+          <div className="flex gap-3 mb-5">
+            <div className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-[#F5F0E8] rounded-[10px]">
+              <Phone size={14} className="text-[#1B2B6B] flex-shrink-0" />
+              <span className="text-[12px] font-semibold text-[#1A1814]">
+                {type === 'worker' ? "Worker's phone" : "Owner's phone"}
+              </span>
+            </div>
+            <div className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-[#F5F0E8] rounded-[10px]">
+              <MapPin size={14} className="text-[#1B2B6B] flex-shrink-0" />
+              <span className="text-[12px] font-semibold text-[#1A1814]">
+                {type === 'worker' ? 'Service area' : 'Exact address'}
+              </span>
+            </div>
+          </div>
+
+          {/* Auth prompt */}
+          <p className="text-[13px] text-[#4A4640] text-center mb-5 leading-relaxed">
+            You need an account to view contact details and make payments.
+            <br />
+            <span className="text-[#8A8480]">It only takes a few seconds.</span>
+          </p>
+
+          <div className="flex flex-col gap-2.5">
+            <a
+              href={loginUrl}
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-[10px] bg-[#1B2B6B] text-white text-[15px] font-bold hover:bg-[#2D3E8C] transition-colors min-h-[52px]"
+              id="unlock-signin-btn"
+            >
+              <LogIn size={16} />
+              Sign in
+            </a>
+            <a
+              href={registerUrl}
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-[10px] border border-[#1B2B6B] text-[#1B2B6B] text-[15px] font-bold hover:bg-[#E8ECF8] transition-colors min-h-[52px]"
+              id="unlock-register-btn"
+            >
+              <UserPlus size={16} />
+              Create account
+            </a>
+          </div>
+
+          <p className="text-[11px] text-[#8A8480] text-center mt-3.5 leading-relaxed">
+            Contact + location revealed instantly · No broker · Valid 30 days
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Show loading skeleton while session resolves
+  if (authLoading) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
+        onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
+      >
+        <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] p-8 flex items-center justify-center shadow-vastoq-lg">
+          <Loader2 size={24} className="animate-spin text-[#1B2B6B]" />
+        </div>
+      </div>
+    )
+  }
+
+  // Not logged in → show auth screen
+  if (!user) return AuthScreen
 
   return (
     <div

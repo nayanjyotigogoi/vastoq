@@ -66,9 +66,10 @@ interface ListingCardProps {
   listing: Listing
   photoHeight?: number
   className?: string
+  onSaveToggle?: (listingId: string, saved: boolean) => void
 }
 
-export default function ListingCard({ listing, photoHeight = 220, className }: ListingCardProps) {
+export default function ListingCard({ listing, photoHeight = 220, className, onSaveToggle }: ListingCardProps) {
   const { user, loading } = useCurrentUser()
   const [saved,  setSaved]  = useState((listing as any).isSaved ?? false)
   const [saving, setSaving] = useState(false)
@@ -97,6 +98,7 @@ export default function ListingCard({ listing, photoHeight = 220, className }: L
       const json = await res.json()
       if (res.ok) {
         setSaved(json.data.saved)
+        onSaveToggle?.(listing.id, json.data.saved)
         toast.success(json.data.saved ? 'Added to saved listings' : 'Removed from saved listings', {
           duration: 2500,
         })

@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search, X, Loader2, MapPin } from 'lucide-react'
 import WorkerCard from './WorkerCard'
 import type { Worker } from './WorkerCard'
 import UnlockGate from '@/components/listing/UnlockGate'
 import { useUserLocation } from '@/hooks/useUserLocation'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 const CATEGORIES = [
   'All', 'Electrician', 'Plumber', 'Carpenter', 'Painter',
@@ -35,6 +37,8 @@ function normalise(w: any): Worker {
 
 export default function WorkersClient() {
   const locationState = useUserLocation()
+  const { user } = useCurrentUser()
+  const router = useRouter()
 
   const [workers,        setWorkers]        = useState<Worker[]>([])
   const [loading,        setLoading]        = useState(true)
@@ -53,6 +57,10 @@ export default function WorkersClient() {
   const [unlockingWorker, setUnlockingWorker] = useState<Worker | null>(null)
 
   const handleUnlock = (workerId: string) => {
+    if (!user) {
+      router.push(`/login?next=${encodeURIComponent('/workers')}`)
+      return
+    }
     const worker = workers.find((w) => w.id === workerId)
     if (worker) setUnlockingWorker(worker)
   }
