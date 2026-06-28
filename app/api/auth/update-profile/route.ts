@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, refreshSession } from '@/lib/auth'
 import { ok, error } from '@/lib/api/response'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
           user_id: guard.session.userId,
           name: body.name,
           email: body.email,
+          phone: body.phone,
         }),
       }
     )
@@ -39,7 +40,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return ok(json.data.user)
+    const updatedUser = json.data.user
+
+    // Keep the local session cookie synchronized with updated user data
+    await refreshSession({
+      name: updatedUser.name,
+      phone: updatedUser.phone ?? '',
+    })
+
+    return ok(updatedUser)
 
   } catch (err) {
 
