@@ -36,14 +36,27 @@ export async function middleware(req: NextRequest) {
   }
 
   if (!allowedRoles.includes(session.role)) {
-    // Wrong role — redirect to the correct dashboard
+    // Wrong role — redirect to the correct dashboard with error context
     const redirectMap: Record<string, string> = {
       tenant: "/dashboard",
       owner: "/owner/dashboard",
       worker: "/worker/dashboard",
       admin: "/admin",
     };
-    return NextResponse.redirect(new URL(redirectMap[session.role] ?? "/", req.url));
+
+    let errorParam = "access_denied";
+    if (pathname.startsWith("/owner/")) {
+      errorParam = "owner_required";
+    } else if (pathname.startsWith("/worker/")) {
+      errorParam = "worker_required";
+    } else if (pathname.startsWith("/admin/")) {
+      errorParam = "admin_required";
+    }
+
+    const redirectUrl = new URL(redirectMap[session.role] ?? "/", req.url);
+    redirectUrl.searchParams.set("error", errorParam);
+
+    return NextResponse.redirect(redirectUrl);
   }
 
   return NextResponse.next();

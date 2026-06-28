@@ -14,10 +14,27 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
  */
 export async function POST(req: NextRequest) {
   try {
-    const { token } = await req.json();
+    const { token, role } = await req.json();
 
     if (!token) {
       return error("No token provided", 400);
+    }
+
+    // If role is provided, update the user's role on the backend first
+    if (role) {
+      const updateRes = await fetch(`${API_URL}/auth/update-role`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ role }),
+      });
+
+      if (!updateRes.ok) {
+        return error("Failed to update user role", 500);
+      }
     }
 
     // Fetch user from Laravel using the Sanctum token

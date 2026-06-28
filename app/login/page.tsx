@@ -240,7 +240,8 @@ function LoginForm() {
                 <button
                   type="button"
                   onClick={() => {
-                    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google`
+                    const roleParam = regRole ? `?role=${regRole}` : ''
+                    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google${roleParam}`
                   }}
                   className="w-full flex items-center justify-center gap-2.5 py-3 px-4 border-2 border-[#E5E0D5] rounded-[10px] text-[14px] font-semibold text-[#1A1814] hover:border-[#1B2B6B] hover:bg-[#E8ECF8] transition-all"
                 >

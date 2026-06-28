@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Bell, Menu, X, ChevronDown } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { toast } from 'sonner'
 
 export default function TopNav() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -13,7 +14,27 @@ export default function TopNav() {
 
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { user } = useCurrentUser()
+
+  useEffect(() => {
+    const errorParam = searchParams?.get('error')
+    if (errorParam) {
+      if (errorParam === 'owner_required') {
+        toast.error('Access denied: You must be registered as a Property Owner to list properties.')
+      } else if (errorParam === 'worker_required') {
+        toast.error('Access denied: You must be registered as a Local Worker to access this area.')
+      } else if (errorParam === 'admin_required') {
+        toast.error('Access denied: Administrator privileges required.')
+      }
+
+      // Clean up parameter from URL
+      const params = new URLSearchParams(searchParams.toString())
+      params.delete('error')
+      const newQuery = params.toString() ? `?${params.toString()}` : ''
+      router.replace(`${pathname}${newQuery}`)
+    }
+  }, [searchParams, pathname, router])
 
   const getLinkClass = (path: string, isMobile = false) => {
     const isActive = pathname === path || (path !== '/' && pathname?.startsWith(path))
@@ -56,8 +77,7 @@ export default function TopNav() {
         method: 'POST',
       })
 
-      router.push('/')
-      router.refresh()
+      window.location.href = '/'
 
     } catch (error) {
       console.error(error)
