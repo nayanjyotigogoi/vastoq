@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { VerifiedAvatar } from '@/components/ui/vastoq-badge'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 export interface Listing {
   id: string
@@ -23,6 +24,7 @@ export interface Listing {
   isPopular?: boolean
   isBoosted?: boolean
   isCommercial?: boolean
+  isSaved?: boolean
   owner: {
     name: string
     phone?: string
@@ -83,6 +85,8 @@ export default function ListingCard({ listing, photoHeight = 220, className }: L
     e.preventDefault()
     if (loading || saving) return
     if (!user?.userId) { window.location.href = '/login'; return }
+    const next = !saved
+    setSaved(next)
     try {
       setSaving(true)
       const res  = await fetch('/api/saved-listings/toggle', {
@@ -91,8 +95,17 @@ export default function ListingCard({ listing, photoHeight = 220, className }: L
         body: JSON.stringify({ listing_id: listing.id }),
       })
       const json = await res.json()
-      if (res.ok) setSaved(json.saved)
-    } catch { /* silent */ } finally { setSaving(false) }
+      if (res.ok) {
+        setSaved(json.data.saved)
+        toast.success(json.data.saved ? 'Added to saved listings' : 'Removed from saved listings', {
+          duration: 2500,
+        })
+      } else {
+        setSaved(!next)
+      }
+    } catch {
+      setSaved(!next)
+    } finally { setSaving(false) }
   }
 
   return (

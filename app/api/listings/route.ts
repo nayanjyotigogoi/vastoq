@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ok, created, error } from "@/lib/api/response";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, getSession } from "@/lib/auth";
 import {
   createListing,
   listListings,
@@ -53,7 +53,11 @@ const filters = {
     ? Number(searchParams.get('per_page'))
     : undefined,
 }
-    const listings = await listListings(filters);
+    const session = await getSession();
+    const listings = await listListings({
+      ...filters,
+      user_id: session?.userId,
+    });
 
     return ok(listings);
 

@@ -63,6 +63,8 @@ function normalise(l: any): Listing {
 
     isBoosted: l.is_featured,
 
+    isSaved: l.is_saved ?? false,
+
     owner: {
       name: l.owner?.name ?? 'Owner',
       verified: l.owner?.is_verified ?? false,
