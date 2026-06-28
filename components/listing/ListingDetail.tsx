@@ -7,6 +7,7 @@ import { VastoqBadge, VerifiedAvatar, Chip } from '@/components/ui/vastoq-badge'
 import UnlockGate from './UnlockGate'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { Listing } from './ListingCard'
+import { usePrices } from '@/hooks/usePrices'
 
 // Leaflet must not be server-side rendered
 const ListingMap = dynamic(() => import('./ListingMap'), {
@@ -37,6 +38,7 @@ interface ListingDetailProps {
 
 export default function ListingDetail({ listing }: ListingDetailProps) {
   const { user } = useCurrentUser()
+  const prices = usePrices()
 
   const [activePhoto, setActivePhoto] = useState(0)
   const [saved,       setSaved]       = useState(false)
@@ -335,14 +337,14 @@ const phone =
                   className="w-full flex items-center justify-center gap-2 py-3 bg-[#1B2B6B] text-white text-[14px] font-bold rounded-[10px] hover:bg-[#2D3E8C] transition-colors min-h-[48px]"
                 >
                   <Lock size={16} />
-                  Message owner — ₹20
+                  Message owner — ₹{prices.listing_unlock}
                 </button>
                 <button
                   onClick={() => setShowUnlock(true)}
                   className="w-full flex items-center justify-center gap-2 py-3 border border-[#1B2B6B] text-[#1B2B6B] text-[14px] font-bold rounded-[10px] hover:bg-[#E8ECF8] transition-colors min-h-[48px]"
                 >
                   <Phone size={16} />
-                  Call owner — ₹20
+                  Call owner — ₹{prices.listing_unlock}
                 </button>
                 <p className="text-[11px] text-[#8A8480] text-center">
                   Unlock once to get contact + exact location

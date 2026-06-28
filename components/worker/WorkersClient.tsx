@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Search, X, Loader2, MapPin } from 'lucide-react'
 import WorkerCard from './WorkerCard'
 import type { Worker } from './WorkerCard'
+import UnlockGate from '@/components/listing/UnlockGate'
 import { useUserLocation } from '@/hooks/useUserLocation'
 
 const CATEGORIES = [
@@ -47,6 +48,23 @@ export default function WorkersClient() {
   const [cityFilter,     setCityFilter]     = useState('')      // sent to API
   const [locationLabel,  setLocationLabel]  = useState('')      // shown in pill
   const [locationPinned, setLocationPinned] = useState(false)  // true = city filter active
+
+  // Unlock gate state
+  const [unlockingWorker, setUnlockingWorker] = useState<Worker | null>(null)
+
+  const handleUnlock = (workerId: string) => {
+    const worker = workers.find((w) => w.id === workerId)
+    if (worker) setUnlockingWorker(worker)
+  }
+
+  const handleUnlockSuccess = (workerId: string, data: any) => {
+    setWorkers((prev) =>
+      prev.map((w) =>
+        w.id === workerId ? { ...w, isUnlocked: true, phone: data?.phone } : w
+      )
+    )
+    setUnlockingWorker(null)
+  }
 
   // Gate: don't fetch until location resolves or timeout fires
   const initialFetched = useRef(false)
@@ -237,7 +255,7 @@ export default function WorkersClient() {
       ) : loading ? (
         // Soft re-fetch shimmer — don't blank the list
         <div className="opacity-50 pointer-events-none space-y-3">
-          {workers.map((worker) => <WorkerCard key={worker.id} worker={worker} />)}
+          {workers.map((worker) => <WorkerCard key={worker.id} worker={worker} onUnlock={handleUnlock} />)}
         </div>
       ) : workers.length === 0 ? (
         <div className="text-center py-20">
@@ -258,8 +276,22 @@ export default function WorkersClient() {
         </div>
       ) : (
         <div className="space-y-3">
-          {workers.map((worker) => <WorkerCard key={worker.id} worker={worker} />)}
+          {workers.map((worker) => (
+            <WorkerCard key={worker.id} worker={worker} onUnlock={handleUnlock} />
+          ))}
         </div>
+      )}
+
+      {/* Unlock Gate modal */}
+      {unlockingWorker && (
+        <UnlockGate
+          type="worker"
+          targetId={unlockingWorker.id}
+          subjectName={unlockingWorker.name}
+          subjectLocality={unlockingWorker.localities?.[0]}
+          onClose={() => setUnlockingWorker(null)}
+          onSuccess={(data) => handleUnlockSuccess(unlockingWorker.id, data)}
+        />
       )}
 
       {/* Register CTA */}

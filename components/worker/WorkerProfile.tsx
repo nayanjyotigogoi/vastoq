@@ -5,6 +5,7 @@ import { Star, MapPin, Lock, Copy, Check, MessageSquare, Loader2 } from 'lucide-
 import { VerifiedAvatar, Chip } from '@/components/ui/vastoq-badge'
 import UnlockGate from '@/components/listing/UnlockGate'
 import type { Worker } from './WorkerCard'
+import { usePrices } from '@/hooks/usePrices'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const SLOTS = ['Morning', 'Afternoon', 'Evening']
@@ -16,6 +17,7 @@ const mockAvailability = (worker: Worker) =>
   }, {})
 
 export default function WorkerProfile({ worker }: { worker: Worker }) {
+  const prices = usePrices()
   const [showUnlock,    setShowUnlock]    = useState(false)
   const [unlocked,      setUnlocked]      = useState(worker.isUnlocked ?? false)
   const [revealedPhone, setRevealedPhone] = useState<string | undefined>(worker.phone)
@@ -186,7 +188,7 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
                   className="w-full flex items-center justify-center gap-2 py-3 bg-[#1B2B6B] text-white text-[14px] font-bold rounded-[10px] hover:bg-[#2D3E8C] transition-colors min-h-[48px]"
                 >
                   <Lock size={16} />
-                  Unlock number — ₹20
+                  Unlock number — ₹{prices.worker_unlock}
                 </button>
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-center text-[#8A8480]">
                   <div className="bg-[#F5F0E8] rounded-[8px] p-2">Pack of 7<br /><span className="font-bold text-[#1B2B6B]">₹100</span></div>
