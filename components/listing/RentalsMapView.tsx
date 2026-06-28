@@ -1,24 +1,21 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-import Link from 'next/link'
-import { MapPin, ExternalLink, X } from 'lucide-react'
+import { MapPin } from 'lucide-react'
+import { loadGoogleMaps } from '@/lib/googleMaps'
 import type { Listing } from './ListingCard'
 
-// ── BHK colour palette ────────────────────────────────────────────────────────
+// â”€â”€ BHK colour palette â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const BHK_COLOR: Record<string, string> = {
-  '1rk':  '#F59E0B',   // amber
-  '1bhk': '#EC4899',   // pink
-  '2bhk': '#8B5CF6',   // purple
-  '3bhk': '#10B981',   // green
-  '4bhk': '#3B82F6',   // blue
-  '5bhk': '#EF4444',   // red
-  'pg':   '#06B6D4',   // cyan
-  'room': '#F97316',   // orange
-  'house':'#84CC16',   // lime
+  '1rk':  '#F59E0B',
+  '1bhk': '#EC4899',
+  '2bhk': '#8B5CF6',
+  '3bhk': '#10B981',
+  '4bhk': '#3B82F6',
+  '5bhk': '#EF4444',
+  'pg':   '#06B6D4',
+  'room': '#F97316',
+  'house':'#84CC16',
 }
 const DEFAULT_COLOR = '#6B7280'
 
@@ -30,7 +27,7 @@ function bhkColor(bhkRaw?: string, propertyType?: string): string {
 }
 
 function bhkLabel(bhkRaw?: string, propertyType?: string): string {
-  if (!bhkRaw) return propertyType ?? '—'
+  if (!bhkRaw) return propertyType ?? 'â€”'
   const map: Record<string, string> = {
     '1rk': '1RK', '1bhk': '1BHK', '2bhk': '2BHK',
     '3bhk': '3BHK', '4bhk': '4BHK', '5bhk': '5BHK',
@@ -38,101 +35,65 @@ function bhkLabel(bhkRaw?: string, propertyType?: string): string {
   return map[bhkRaw] ?? bhkRaw.toUpperCase()
 }
 
-// ── Deterministic ±~150 m offset so exact building is never shown ─────────────
+// â”€â”€ Deterministic Â±~150 m offset so exact building is never shown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function approxOffset(id: string): [number, number] {
   let h = 5381
   for (let i = 0; i < id.length; i++) {
     h = ((h << 5) + h + id.charCodeAt(i)) & 0x7fffffff
   }
-  const latOff = ((h & 0xff) / 255 - 0.5) * 0.0027        // ±0.00135° ≈ ±150 m
-  const lngOff = (((h >> 8) & 0xff) / 255 - 0.5) * 0.0035 // ±0.00175° ≈ ±150 m
+  const latOff = ((h & 0xff) / 255 - 0.5) * 0.0027
+  const lngOff = (((h >> 8) & 0xff) / 255 - 0.5) * 0.0035
   return [latOff, lngOff]
 }
 
-// ── Custom pill marker ────────────────────────────────────────────────────────
-function pillIcon(label: string, rentK: string, color: string, active: boolean) {
-  const scale = active ? 'scale(1.15)' : 'scale(1)'
-  const shadow = active
-    ? '0 4px 16px rgba(0,0,0,0.35)'
-    : '0 2px 8px rgba(0,0,0,0.22)'
-  const html = `
-    <div style="
-      display:inline-flex;align-items:center;gap:4px;
-      background:${color};color:#fff;
-      padding:4px 9px;border-radius:20px;
-      font-family:inherit;font-size:11px;font-weight:700;
-      white-space:nowrap;
-      box-shadow:${shadow};border:2px solid #fff;
-      transform:${scale};transform-origin:center bottom;
-      transition:transform 0.15s,box-shadow 0.15s;
-      cursor:pointer;
-    ">
-      ${label}<span style="opacity:.75;font-weight:500">·${rentK}</span>
-    </div>
-    <div style="
-      width:0;height:0;margin:0 auto;
-      border-left:5px solid transparent;
-      border-right:5px solid transparent;
-      border-top:6px solid ${color};
-      filter:drop-shadow(0 1px 1px rgba(0,0,0,.15));
-    "></div>
-  `
-  return L.divIcon({ html, className: '', iconSize: [0, 0], iconAnchor: [0, 0] })
-}
-
-// ── Auto-fit: prefer user location, else fit listing bounds ──────────────────
-function BoundsFitter({
-  points,
-  userLocation,
-}: {
-  points: [number, number][]
-  userLocation?: { lat: number; lng: number }
-}) {
-  const map = useMap()
-  const fitted = useRef(false)
-  useEffect(() => {
-    if (fitted.current) return
-    if (userLocation) {
-      map.setView([userLocation.lat, userLocation.lng], 13)
-      fitted.current = true
-      return
-    }
-    if (points.length === 0) return
-    if (points.length === 1) {
-      map.setView(points[0], 14)
-    } else {
-      map.fitBounds(L.latLngBounds(points), { padding: [48, 48], maxZoom: 14 })
-    }
-    fitted.current = true
-  }, [points, userLocation, map])
-  return null
-}
-
-// ── Pulsing "You are here" marker ─────────────────────────────────────────────
-function UserLocationMarker({ lat, lng }: { lat: number; lng: number }) {
-  const icon = L.divIcon({
-    className: '',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-    html: `
-      <div style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
-        <div class="vastoq-you-pulse"></div>
-        <div style="width:14px;height:14px;background:#3B82F6;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(59,130,246,0.6);position:relative;z-index:2;"></div>
+// â”€â”€ Pill marker HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function pillHtml(label: string, rentK: string, color: string, active: boolean): string {
+  const shadow = active ? '0 4px 16px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.22)'
+  const scale  = active ? 'scale(1.15)' : 'scale(1)'
+  return `
+    <div style="cursor:pointer;transform:${scale};transform-origin:center bottom;transition:transform .15s,box-shadow .15s">
+      <div style="display:inline-flex;align-items:center;gap:4px;background:${color};color:#fff;padding:4px 9px;border-radius:20px;font-family:inherit;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:${shadow};border:2px solid #fff;">
+        ${label}<span style="opacity:.75;font-weight:500">Â·${rentK}</span>
       </div>
-    `,
-  })
-  return (
-    <Marker position={[lat, lng]} icon={icon} zIndexOffset={2000}>
-      <Popup closeButton={false} offset={[0, -8]}>
-        <div style={{ padding: '8px 12px', fontSize: 12, fontWeight: 600, color: '#1A1814', whiteSpace: 'nowrap' }}>
-          📍 Your location
-        </div>
-      </Popup>
-    </Marker>
-  )
+      <div style="width:0;height:0;margin:0 auto;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${color};filter:drop-shadow(0 1px 1px rgba(0,0,0,.15));"></div>
+    </div>`
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// â”€â”€ "You are here" pulsing marker HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const YOU_HTML = `
+  <style>
+    @keyframes vastoq-ring{0%{transform:scale(1);opacity:.7}100%{transform:scale(2.8);opacity:0}}
+    .vastoq-pulse{position:absolute;inset:0;border-radius:50%;background:#3B82F6;animation:vastoq-ring 1.6s ease-out infinite}
+  </style>
+  <div style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
+    <div class="vastoq-pulse"></div>
+    <div style="width:14px;height:14px;background:#3B82F6;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(59,130,246,0.6);position:relative;z-index:2;"></div>
+  </div>`
+
+// â”€â”€ Popup card HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function popupHtml(listing: Listing, color: string, label: string): string {
+  const rentStr = `\u20B9${listing.rent.toLocaleString('en-IN')}/mo`
+  const photo = listing.photos?.[0]
+    ? `<img src="${listing.photos[0]}" alt="${listing.title}" style="width:100%;height:112px;object-fit:cover;display:block;"/>`
+    : `<div style="width:100%;height:64px;display:flex;align-items:center;justify-content:center;background:${color}22;">
+         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+       </div>`
+  return `
+    <div style="background:#fff;border-radius:14px;overflow:hidden;width:240px;font-family:inherit;border:1px solid #E5E0D5;box-shadow:0 8px 24px rgba(0,0,0,0.14);">
+      ${photo}
+      <div style="padding:10px 12px;">
+        <span style="display:inline-block;font-size:10px;font-weight:700;color:#fff;background:${color};padding:2px 8px;border-radius:20px;margin-bottom:6px;">${label}</span>
+        <p style="font-size:13px;font-weight:600;color:#1A1814;margin:0 0 4px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${listing.title}</p>
+        <p style="font-size:11px;color:#8A8480;margin:0 0 8px;">${listing.locality}</p>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:15px;font-weight:800;color:#1B2B6B;">${rentStr}</span>
+          <a href="/rentals/${listing.id}" style="font-size:11px;font-weight:700;color:#1B2B6B;text-decoration:none;">View \u2192</a>
+        </div>
+      </div>
+    </div>`
+}
+
+// â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface RentalsMapViewProps {
   listings: Listing[]
   height?: string | number
@@ -140,228 +101,173 @@ interface RentalsMapViewProps {
   onSelectListing?: (listing: Listing) => void
 }
 
+// â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function RentalsMapView({ listings, height, userLocation, onSelectListing }: RentalsMapViewProps) {
-  const [activeId, setActiveId] = useState<string | null>(null)
+  const mapRef         = useRef<HTMLDivElement>(null)
+  const gRef           = useRef<typeof google | null>(null)
+  const mapInst        = useRef<google.maps.Map | null>(null)
+  const markersRef     = useRef<any[]>([])
+  const infoWindowRef  = useRef<google.maps.InfoWindow | null>(null)
+  const youMarkerRef   = useRef<any>(null)
+  const [mapReady, setMapReady] = useState(false)
 
-  // Only listings that have coordinates
-  const pinned = listings.filter(
-    (l) => l.latitude != null && l.longitude != null
-  )
+  const pinned   = listings.filter((l) => l.latitude != null && l.longitude != null)
   const unpinned = listings.length - pinned.length
 
-  // Build map points (with offset)
-  const points: [number, number][] = pinned.map((l) => {
-    const [dLat, dLng] = approxOffset(l.id)
-    return [l.latitude! + dLat, l.longitude! + dLng]
-  })
+  // â”€â”€ Init map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  useEffect(() => {
+    let cancelled = false
+    loadGoogleMaps().then((g) => {
+      if (cancelled || !mapRef.current || mapInst.current) return
+      gRef.current = g
+      const fallback = { lat: 26.1445, lng: 91.7362 }
+      const center = userLocation ?? fallback
 
-  // Center: user location → listing centroid → Guwahati fallback
-  const fallbackCenter: [number, number] = [26.1445, 91.7362]
-  const center: [number, number] = userLocation
-    ? [userLocation.lat, userLocation.lng]
-    : points.length > 0
-    ? [
-        points.reduce((s, p) => s + p[0], 0) / points.length,
-        points.reduce((s, p) => s + p[1], 0) / points.length,
-      ]
-    : fallbackCenter
+      const map = new g.maps.Map(mapRef.current!, {
+        center,
+        zoom: 13,
+        mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID',
+        disableDefaultUI: false,
+        zoomControl: true,
+        streetViewControl: false,
+        mapTypeControl: false,
+        fullscreenControl: false,
+        clickableIcons: false,
+        gestureHandling: 'cooperative',
+      })
+
+      mapInst.current = map
+      infoWindowRef.current = new g.maps.InfoWindow()
+      map.addListener('click', () => infoWindowRef.current?.close())
+      setMapReady(true)
+    })
+    return () => { cancelled = true }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // â”€â”€ Re-centre on user location â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  useEffect(() => {
+    if (!mapInst.current || !userLocation) return
+    mapInst.current.panTo(userLocation)
+    mapInst.current.setZoom(13)
+  }, [userLocation])
+
+  // â”€â”€ "You are here" marker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  useEffect(() => {
+    if (!mapReady || !gRef.current || !mapInst.current) return
+    if (!userLocation) { if (youMarkerRef.current) youMarkerRef.current.map = null; return }
+    const el = document.createElement('div')
+    el.innerHTML = YOU_HTML
+    if (youMarkerRef.current) youMarkerRef.current.map = null
+    // @ts-ignore
+    youMarkerRef.current = new gRef.current.maps.marker.AdvancedMarkerElement({
+      map: mapInst.current, position: userLocation, content: el, title: 'Your location', zIndex: 2000,
+    })
+  }, [mapReady, userLocation])
+
+  // â”€â”€ Listing markers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  useEffect(() => {
+    if (!mapReady || !gRef.current || !mapInst.current) return
+    const g   = gRef.current
+    const map = mapInst.current
+    const iw  = infoWindowRef.current!
+
+    // Clear old markers
+    markersRef.current.forEach((m) => { m.map = null })
+    markersRef.current = []
+
+    // Fit bounds (only when no userLocation)
+    if (pinned.length > 0 && !userLocation) {
+      const bounds = new g.maps.LatLngBounds()
+      pinned.forEach((l) => {
+        const [dLat, dLng] = approxOffset(l.id)
+        bounds.extend({ lat: l.latitude! + dLat, lng: l.longitude! + dLng })
+      })
+      if (pinned.length === 1) { map.setCenter(bounds.getCenter()); map.setZoom(14) }
+      else {
+        map.fitBounds(bounds, 48)
+        g.maps.event.addListenerOnce(map, 'bounds_changed', () => {
+          if ((map.getZoom() ?? 0) > 14) map.setZoom(14)
+        })
+      }
+    }
+
+    pinned.forEach((listing) => {
+      const [dLat, dLng] = approxOffset(listing.id)
+      const pos   = { lat: listing.latitude! + dLat, lng: listing.longitude! + dLng }
+      const color = bhkColor((listing as any).bhkRaw, listing.propertyType)
+      const label = bhkLabel((listing as any).bhkRaw, listing.propertyType)
+      const rentK = listing.rent >= 1000 ? `\u20B9${Math.round(listing.rent / 1000)}K` : `\u20B9${listing.rent}`
+
+      const el = document.createElement('div')
+      el.innerHTML = pillHtml(label, rentK, color, false)
+
+      // @ts-ignore
+      const marker = new g.maps.marker.AdvancedMarkerElement({
+        map, position: pos, content: el, title: listing.title, zIndex: 0,
+      })
+
+      marker.addListener('click', () => {
+        // Reset all markers to inactive
+        markersRef.current.forEach((m) => {
+          const l = pinned.find((x) => x.title === m.title)
+          if (!l) return
+          const c = bhkColor((l as any).bhkRaw, l.propertyType)
+          const lb = bhkLabel((l as any).bhkRaw, l.propertyType)
+          const rk = l.rent >= 1000 ? `\u20B9${Math.round(l.rent / 1000)}K` : `\u20B9${l.rent}`;
+          (m.content as HTMLElement).innerHTML = pillHtml(lb, rk, c, false)
+          m.zIndex = 0
+        })
+        el.innerHTML = pillHtml(label, rentK, color, true)
+        marker.zIndex = 1000
+        iw.setContent(popupHtml(listing, color, label))
+        iw.open({ anchor: marker, map })
+        onSelectListing?.(listing)
+      })
+
+      markersRef.current.push(marker)
+    })
+  }, [mapReady, listings]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="relative w-full rounded-[14px] overflow-hidden border border-[#E5E0D5] shadow-vastoq-sm"
-         style={{ height: height ?? 'calc(100vh - 260px)', minHeight: 420 }}>
+    <div
+      className="relative w-full rounded-[14px] overflow-hidden border border-[#E5E0D5] shadow-vastoq-sm"
+      style={{ height: height ?? 'calc(100vh - 260px)', minHeight: 420 }}
+    >
+      {/* â”€â”€ Google Map canvas â”€â”€ */}
+      <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
 
-      {/* ── Map ── */}
-      <MapContainer
-        center={center}
-        zoom={13}
-        style={{ height: '100%', width: '100%' }}
-        zoomControl={true}
-        attributionControl={false}
-        scrollWheelZoom={true}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
-        <BoundsFitter points={points} userLocation={userLocation} />
-
-        {/* User's location marker */}
-        {userLocation && (
-          <UserLocationMarker lat={userLocation.lat} lng={userLocation.lng} />
-        )}
-
-        {pinned.map((listing, idx) => {
-          const [dLat, dLng] = approxOffset(listing.id)
-          const pos: [number, number] = [listing.latitude! + dLat, listing.longitude! + dLng]
-          const color  = bhkColor((listing as any).bhkRaw, listing.propertyType)
-          const label  = bhkLabel((listing as any).bhkRaw, listing.propertyType)
-          const rentK  = listing.rent >= 1000
-            ? `₹${Math.round(listing.rent / 1000)}K`
-            : `₹${listing.rent}`
-          const isActive = activeId === listing.id
-
-          return (
-            <Marker
-              key={listing.id}
-              position={pos}
-              icon={pillIcon(label, rentK, color, isActive)}
-              eventHandlers={{
-                click: () => {
-                  setActiveId(listing.id === activeId ? null : listing.id)
-                  onSelectListing?.(listing)
-                },
-              }}
-              zIndexOffset={isActive ? 1000 : 0}
-            >
-              <Popup
-                offset={[0, -8]}
-                closeButton={false}
-                className="vastoq-popup"
-                eventHandlers={{ remove: () => setActiveId(null) }}
-              >
-                <PopupCard listing={listing} color={color} label={label} />
-              </Popup>
-            </Marker>
-          )
-        })}
-      </MapContainer>
-
-      {/* ── Legend ── */}
-      <div className="absolute bottom-4 left-4 z-[900] bg-white/95 border border-[#E5E0D5] rounded-[12px] px-3 py-2.5 shadow-sm">
+      {/* â”€â”€ Legend â”€â”€ */}
+      <div className="absolute bottom-4 left-4 z-[900] bg-white/95 border border-[#E5E0D5] rounded-[12px] px-3 py-2.5 shadow-sm pointer-events-none">
         <p className="text-[10px] font-bold text-[#8A8480] uppercase tracking-wide mb-2">Type</p>
         <div className="flex flex-col gap-1.5">
           {[
-            ['1RK', '#F59E0B'],
-            ['1BHK', '#EC4899'],
-            ['2BHK', '#8B5CF6'],
-            ['3BHK', '#10B981'],
-            ['4BHK', '#3B82F6'],
-            ['5BHK', '#EF4444'],
-            ['PG', '#06B6D4'],
-            ['House', '#84CC16'],
+            ['1RK',  '#F59E0B'], ['1BHK', '#EC4899'],
+            ['2BHK', '#8B5CF6'], ['3BHK', '#10B981'],
+            ['4BHK', '#3B82F6'], ['5BHK', '#EF4444'],
+            ['PG',   '#06B6D4'], ['House','#84CC16'],
           ].map(([lbl, col]) => (
             <div key={lbl} className="flex items-center gap-2">
-              <span
-                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ background: col }}
-              />
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: col }} />
               <span className="text-[11px] font-medium text-[#4A4640]">{lbl}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── Stats badge ── */}
+      {/* â”€â”€ Stats badge â”€â”€ */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[900] flex items-center gap-2 bg-white/95 border border-[#E5E0D5] rounded-full px-3 py-1.5 shadow-sm pointer-events-none">
         <MapPin size={12} className="text-[#1B2B6B]" />
         <span className="text-[12px] font-semibold text-[#1A1814]">
           {pinned.length} listing{pinned.length !== 1 ? 's' : ''} on map
         </span>
         {unpinned > 0 && (
-          <span className="text-[11px] text-[#8A8480]">· {unpinned} without coordinates</span>
+          <span className="text-[11px] text-[#8A8480]">Â· {unpinned} without coordinates</span>
         )}
       </div>
 
-      {/* ── Privacy note ── */}
+      {/* â”€â”€ Privacy note â”€â”€ */}
       <div className="absolute bottom-4 right-4 z-[900] bg-white/95 border border-[#E5E0D5] rounded-full px-3 py-1 shadow-sm pointer-events-none">
-        <span className="text-[10px] text-[#8A8480]">Approx. area shown · not exact</span>
-      </div>
-
-      {/* ── OSM attribution ── */}
-      <div className="absolute bottom-1 right-24 z-[900] text-[9px] text-[#8A8480]">
-        © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline">OpenStreetMap</a>
-      </div>
-
-      {/* ── Global popup + animation styles ── */}
-      <style>{`
-        @keyframes vastoq-you-ring {
-          0%   { transform: scale(1);   opacity: 0.7; }
-          100% { transform: scale(2.8); opacity: 0; }
-        }
-        .vastoq-you-pulse {
-          position: absolute;
-          inset: 0;
-          border-radius: 50%;
-          background: #3B82F6;
-          animation: vastoq-you-ring 1.6s ease-out infinite;
-        }
-        .vastoq-popup .leaflet-popup-content-wrapper {
-          padding: 0;
-          border-radius: 14px;
-          border: 1px solid #E5E0D5;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.14);
-          overflow: hidden;
-          min-width: 220px;
-          max-width: 260px;
-        }
-        .vastoq-popup .leaflet-popup-content {
-          margin: 0;
-          width: 100% !important;
-        }
-        .vastoq-popup .leaflet-popup-tip-container {
-          display: none;
-        }
-      `}</style>
-    </div>
-  )
-}
-
-// ── Popup card ────────────────────────────────────────────────────────────────
-function PopupCard({
-  listing,
-  color,
-  label,
-}: {
-  listing: Listing
-  color: string
-  label: string
-}) {
-  const rentStr = `₹${listing.rent.toLocaleString('en-IN')}/mo`
-
-  return (
-    <div className="bg-white rounded-[14px] overflow-hidden w-full">
-      {/* Photo */}
-      {listing.photos?.[0] ? (
-        <img
-          src={listing.photos[0]}
-          alt={listing.title}
-          className="w-full h-28 object-cover"
-        />
-      ) : (
-        <div
-          className="w-full h-16 flex items-center justify-center"
-          style={{ background: color + '22' }}
-        >
-          <MapPin size={22} style={{ color }} />
-        </div>
-      )}
-
-      {/* Info */}
-      <div className="px-3 py-2.5">
-        {/* BHK pill */}
-        <span
-          className="inline-block text-[10px] font-bold text-white px-2 py-0.5 rounded-full mb-1.5"
-          style={{ background: color }}
-        >
-          {label}
-        </span>
-
-        <p className="text-[13px] font-semibold text-[#1A1814] leading-snug mb-0.5 line-clamp-2">
-          {listing.title}
-        </p>
-
-        <p className="text-[11px] text-[#8A8480] mb-2 flex items-center gap-1">
-          <MapPin size={10} className="flex-shrink-0" />
-          {listing.locality}
-        </p>
-
-        <div className="flex items-center justify-between">
-          <span className="text-[15px] font-extrabold text-[#1B2B6B]">{rentStr}</span>
-          <Link
-            href={`/rentals/${listing.id}`}
-            className="flex items-center gap-1 text-[11px] font-bold text-[#1B2B6B] hover:underline"
-          >
-            View <ExternalLink size={10} />
-          </Link>
-        </div>
+        <span className="text-[10px] text-[#8A8480]">Approx. area shown Â· not exact</span>
       </div>
     </div>
   )
