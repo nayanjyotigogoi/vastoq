@@ -212,9 +212,10 @@ export default function TenantDashboard() {
             {dashboardData?.unlocks?.map(
               (unlock: any) =>
                 unlock.listing ? (
-                  <div
+                  <Link
                     key={unlock.id}
-                    className="bg-white rounded-[14px] border border-[#E5E0D5] p-4 flex items-start gap-4 shadow-vastoq-sm"
+                    href={`/rentals/${unlock.listing.id}`}
+                    className="bg-white rounded-[14px] border border-[#E5E0D5] p-4 flex items-start gap-4 shadow-vastoq-sm hover:shadow-vastoq-md hover:-translate-y-0.5 transition-all block"
                   >
                     {unlock.listing?.photos?.[0] && (
                       <img
@@ -243,7 +244,7 @@ export default function TenantDashboard() {
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ) : null
             )}
 
