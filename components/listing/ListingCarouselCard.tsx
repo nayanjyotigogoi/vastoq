@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { Heart, MapPin, Lock, ShieldCheck, Camera } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 import type { Listing } from './ListingCard'
 
 const BHK_COLOR: Record<string, { bg: string; text: string }> = {
@@ -39,6 +40,8 @@ export default function ListingCarouselCard({ listing }: { listing: Listing }) {
     e.preventDefault()
     if (loading || saving) return
     if (!user?.userId) { window.location.href = '/login'; return }
+    const next = !saved
+    setSaved(next)
     try {
       setSaving(true)
       const res  = await fetch('/api/saved-listings/toggle', {
@@ -47,8 +50,17 @@ export default function ListingCarouselCard({ listing }: { listing: Listing }) {
         body: JSON.stringify({ listing_id: listing.id }),
       })
       const json = await res.json()
-      if (res.ok) setSaved(json.saved)
-    } catch { /* silent */ } finally { setSaving(false) }
+      if (res.ok) {
+        setSaved(json.data.saved)
+        toast.success(json.data.saved ? 'Added to saved listings' : 'Removed from saved listings', {
+          duration: 2500,
+        })
+      } else {
+        setSaved(!next)
+      }
+    } catch {
+      setSaved(!next)
+    } finally { setSaving(false) }
   }
 
   const color    = BHK_COLOR[listing.bhkRaw ?? ''] ?? DEFAULT_COLOR

@@ -5,6 +5,7 @@ import { Star, MapPin, Lock, Copy, Check } from 'lucide-react'
 import { useState } from 'react'
 import { VerifiedAvatar, Chip } from '@/components/ui/vastoq-badge'
 import { cn } from '@/lib/utils'
+import { usePrices } from '@/hooks/usePrices'
 
 export interface Worker {
   id: string
@@ -30,6 +31,7 @@ interface WorkerCardProps {
 }
 
 export default function WorkerCard({ worker, onUnlock, className }: WorkerCardProps) {
+  const prices = usePrices()
   const [copied, setCopied] = useState(false)
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -162,7 +164,7 @@ export default function WorkerCard({ worker, onUnlock, className }: WorkerCardPr
             className="flex items-center gap-2 px-4 py-2 bg-[#1B2B6B] text-white text-[13px] font-semibold rounded-[8px] hover:bg-[#2D3E8C] transition-colors min-h-[40px]"
           >
             <Lock size={13} />
-            Unlock number — ₹20
+            Unlock number — ₹{prices.worker_unlock}
           </button>
         )}
       </div>

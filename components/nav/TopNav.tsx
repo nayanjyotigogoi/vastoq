@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Bell, Menu, X, ChevronDown } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { toast } from 'sonner'
 
 export default function TopNav() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -12,7 +13,42 @@ export default function TopNav() {
   const [loggingOut, setLoggingOut] = useState(false)
 
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { user } = useCurrentUser()
+
+  useEffect(() => {
+    const errorParam = searchParams?.get('error')
+    if (errorParam) {
+      if (errorParam === 'owner_required') {
+        toast.error('Access denied: You must be registered as a Property Owner to list properties.')
+      } else if (errorParam === 'worker_required') {
+        toast.error('Access denied: You must be registered as a Local Worker to access this area.')
+      } else if (errorParam === 'admin_required') {
+        toast.error('Access denied: Administrator privileges required.')
+      }
+
+      // Clean up parameter from URL
+      const params = new URLSearchParams(searchParams.toString())
+      params.delete('error')
+      const newQuery = params.toString() ? `?${params.toString()}` : ''
+      router.replace(`${pathname}${newQuery}`)
+    }
+  }, [searchParams, pathname, router])
+
+  const getLinkClass = (path: string, isMobile = false) => {
+    const isActive = pathname === path || (path !== '/' && pathname?.startsWith(path))
+    
+    if (isMobile) {
+      return isActive
+        ? 'text-[15px] font-semibold py-2 text-[#1B2B6B] transition-colors'
+        : 'text-[15px] font-medium py-2 text-[#4A4640] hover:text-[#1B2B6B] transition-colors'
+    }
+    
+    return isActive
+      ? 'text-[14px] font-semibold text-[#1B2B6B] transition-colors'
+      : 'text-[14px] font-medium text-[#4A4640] hover:text-[#1B2B6B] transition-colors'
+  }
 
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -41,8 +77,7 @@ export default function TopNav() {
         method: 'POST',
       })
 
-      router.push('/')
-      router.refresh()
+      window.location.href = '/'
 
     } catch (error) {
       console.error(error)
@@ -68,35 +103,35 @@ export default function TopNav() {
         >
           <Link
             href="/rentals"
-            className="text-[14px] font-medium text-[#4A4640] hover:text-[#1B2B6B] transition-colors"
+            className={getLinkClass('/rentals')}
           >
             Rentals
           </Link>
 
           <Link
             href="/workers"
-            className="text-[14px] font-medium text-[#4A4640] hover:text-[#1B2B6B] transition-colors"
+            className={getLinkClass('/workers')}
           >
             Local Workers
           </Link>
 
           <Link
             href="/furniture"
-            className="text-[14px] font-medium text-[#4A4640] hover:text-[#1B2B6B] transition-colors"
+            className={getLinkClass('/furniture')}
           >
             Furniture Rental
           </Link>
 
           <Link
             href="/how-it-works"
-            className="text-[14px] font-medium text-[#4A4640] hover:text-[#1B2B6B] transition-colors"
+            className={getLinkClass('/how-it-works')}
           >
             How It Works
           </Link>
 
           <Link
             href="/owner/listings/new"
-            className="text-[14px] font-semibold text-[#1B2B6B] hover:text-[#2D3E8C] transition-colors"
+            className={getLinkClass('/owner/listings/new')}
           >
             List Property
           </Link>
@@ -218,35 +253,35 @@ export default function TopNav() {
         <div className="lg:hidden bg-white border-t border-[#E5E0D5] px-4 py-4 flex flex-col gap-3">
           <Link
             href="/rentals"
-            className="text-[15px] font-medium py-2"
+            className={getLinkClass('/rentals', true)}
           >
             Rentals
           </Link>
 
           <Link
             href="/workers"
-            className="text-[15px] font-medium py-2"
+            className={getLinkClass('/workers', true)}
           >
             Local Workers
           </Link>
 
           <Link
             href="/furniture"
-            className="text-[15px] font-medium py-2"
+            className={getLinkClass('/furniture', true)}
           >
             Furniture Rental
           </Link>
 
           <Link
             href="/how-it-works"
-            className="text-[15px] font-medium py-2"
+            className={getLinkClass('/how-it-works', true)}
           >
             How It Works
           </Link>
 
           <Link
             href="/owner/listings/new"
-            className="text-[15px] font-medium py-2"
+            className={getLinkClass('/owner/listings/new', true)}
           >
             List Property
           </Link>

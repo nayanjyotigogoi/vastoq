@@ -46,34 +46,48 @@ function writeCache(location: UserLocation) {
   } catch { /* storage full — ignore */ }
 }
 
+/**
+ * Reverse-geocodes a lat/lng using the Google Geocoding API.
+ * Extracts locality (suburb/sublocality) for displayName and
+ * administrative_area_level_2 / locality for the city search term.
+ */
 async function reverseGeocode(lat: number, lng: number): Promise<UserLocation> {
-  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=12`
-  const res  = await fetch(url, { headers: { 'Accept-Language': 'en' } })
-  if (!res.ok) throw new Error('Geocode failed')
-  const data = await res.json()
-  const addr = data.address ?? {}
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  if (!apiKey) throw new Error('Google Maps API key not configured')
 
-  // In India, addr.town is the proper city name for most cities.
-  // addr.city often contains the ward/constituency name (e.g. "Dibrugarh West")
-  // so we prefer town → city → municipality → county → state_district.
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=en&result_type=sublocality|locality|administrative_area_level_2`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('Geocode request failed')
+
+  const data = await res.json()
+  if (data.status !== 'OK' || !data.results?.length) {
+    throw new Error(`Geocode error: ${data.status}`)
+  }
+
+  // Collect all address_components across all results into a single map
+  const components: Record<string, string> = {}
+  for (const result of data.results) {
+    for (const comp of result.address_components ?? []) {
+      for (const type of comp.types ?? []) {
+        if (!components[type]) components[type] = comp.long_name
+      }
+    }
+  }
+
+  // City: prefer locality → administrative_area_level_2 → administrative_area_level_1
   const city =
-    addr.town ??
-    addr.city ??
-    addr.municipality ??
-    addr.county ??
-    addr.state_district ??
+    components['locality'] ??
+    components['administrative_area_level_2'] ??
+    components['administrative_area_level_1'] ??
     'Unknown'
 
-  // The suburb/neighbourhood is the ward-level name (e.g. "Dibrugarh West")
-  // — used for display only, not for API search
+  // Display name: use sublocality for fine-grained label, else city
   const suburb =
-    addr.suburb ??
-    addr.neighbourhood ??
-    addr.quarter ??
-    addr.village ??
+    components['sublocality_level_1'] ??
+    components['sublocality'] ??
+    components['neighborhood'] ??
     undefined
 
-  // displayName shown in the UI pill — suburb if available, else city
   const displayName = suburb ?? city
 
   return { city, displayName, lat, lng }
@@ -120,3 +134,4 @@ export function useUserLocation() {
 
   return state
 }
+

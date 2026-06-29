@@ -63,7 +63,7 @@ const INITIAL: FormState = {
 
 type Step = 'basics' | 'details' | 'amenities' | 'photos' | 'success'
 
-const LeafletMap = dynamic(() => import('@/components/ui/LeafletMap'), {
+const GoogleMapPicker = dynamic(() => import('@/components/ui/GoogleMapPicker'), {
   ssr: false,
   loading: () => <div className="h-[220px] w-full rounded-[12px] border border-[#D0C9BC] bg-[#FAFAF8]" />,
 })
@@ -112,7 +112,12 @@ export default function NewListingPage() {
         throw new Error('Enter a locality or city first to search the map location.')
       }
 
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`)
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+      if (!apiKey) throw new Error('Google Maps API key not configured.')
+
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${apiKey}&language=en&region=in`
+      )
 
       if (!response.ok) {
         throw new Error('Could not resolve the location on the map.')
@@ -120,14 +125,15 @@ export default function NewListingPage() {
 
       const data = await response.json()
 
-      if (!Array.isArray(data) || !data[0]) {
+      if (data.status !== 'OK' || !data.results?.length) {
         throw new Error('No map result found for this address. Try a more specific locality.')
       }
 
-      const place = data[0]
-      update('latitude', String(place.lat))
-      update('longitude', String(place.lon))
-      update('address', form.address || place.display_name)
+      const place = data.results[0]
+      const loc   = place.geometry.location
+      update('latitude',  String(loc.lat))
+      update('longitude', String(loc.lng))
+      update('address', form.address || place.formatted_address)
     } catch (err: any) {
       setError(err?.message || 'Failed to find the map location.')
     } finally {
@@ -417,7 +423,7 @@ export default function NewListingPage() {
                         : 'Pin will appear here after you search or use your current location.'}
                     </div>
                     <div className="overflow-hidden rounded-[12px] border border-[#D0C9BC] bg-white">
-                      <LeafletMap
+                      <GoogleMapPicker
                         latitude={form.latitude ? Number(form.latitude) : 26.1445}
                         longitude={form.longitude ? Number(form.longitude) : 91.7362}
                         onPinSelect={(lat: number, lng: number) => {

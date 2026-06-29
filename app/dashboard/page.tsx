@@ -61,6 +61,7 @@ export default function TenantDashboard() {
   const { user, loading } = useCurrentUser()
 
   const [dashboardData, setDashboardData] = useState<any>(null)
+  const [savedListings,  setSavedListings]  = useState<any[]>([])
 
   useEffect(() => {
     if (!user?.userId) return
@@ -68,11 +69,26 @@ export default function TenantDashboard() {
     async function loadDashboard() {
       const res = await fetch('/api/dashboard/tenant', { credentials: 'include' })
       const json = await res.json()
-      if (res.ok) setDashboardData(json.data)
+      if (res.ok) {
+        setDashboardData(json.data)
+        setSavedListings(json.data?.saved_listings_data ?? [])
+      }
     }
 
     loadDashboard()
   }, [user])
+
+  // Called by ListingCard when the user unsaves from inside the card
+  const handleSaveToggle = (listingId: string, saved: boolean) => {
+    if (!saved) {
+      setSavedListings((prev) => prev.filter((s) => String(s.listing?.id) !== String(listingId)))
+      setDashboardData((prev: any) =>
+        prev
+          ? { ...prev, stats: { ...prev.stats, saved_listings: Math.max(0, (prev.stats?.saved_listings ?? 1) - 1) } }
+          : prev
+      )
+    }
+  }
 
   // const unlockedListings = MOCK_UNLOCKED.map((u) => ({
   //   ...u,
@@ -128,7 +144,7 @@ export default function TenantDashboard() {
             },
             {
               label: 'Saved listings',
-              value:dashboardData?.stats?.saved_listings ?? '0',
+              value: savedListings.length > 0 ? savedListings.length : (dashboardData?.stats?.saved_listings ?? '0'),
               sub: 'properties',
             },
             {
@@ -196,9 +212,10 @@ export default function TenantDashboard() {
             {dashboardData?.unlocks?.map(
               (unlock: any) =>
                 unlock.listing ? (
-                  <div
+                  <Link
                     key={unlock.id}
-                    className="bg-white rounded-[14px] border border-[#E5E0D5] p-4 flex items-start gap-4 shadow-vastoq-sm"
+                    href={`/rentals/${unlock.listing.id}`}
+                    className="bg-white rounded-[14px] border border-[#E5E0D5] p-4 flex items-start gap-4 shadow-vastoq-sm hover:shadow-vastoq-md hover:-translate-y-0.5 transition-all block"
                   >
                     {unlock.listing?.photos?.[0] && (
                       <img
@@ -227,7 +244,7 @@ export default function TenantDashboard() {
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ) : null
             )}
 
@@ -332,7 +349,7 @@ export default function TenantDashboard() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-{dashboardData?.saved_listings_data?.map(
+{savedListings.map(
   (saved: any) => {
     if (!saved.listing) return null
 
@@ -341,6 +358,7 @@ export default function TenantDashboard() {
     return (
       <ListingCard
         key={saved.id}
+        onSaveToggle={handleSaveToggle}
         listing={{
           id: String(listing.id),
 
@@ -407,8 +425,7 @@ export default function TenantDashboard() {
 )}
           </div>
 
-          {(!dashboardData?.saved_listings_data ||
-            dashboardData.saved_listings_data.length === 0) && (
+          {(!savedListings || savedListings.length === 0) && (
             <div className="bg-white rounded-[14px] border border-[#E5E0D5] p-8 text-center">
               <Heart
                 size={28}

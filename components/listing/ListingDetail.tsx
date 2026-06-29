@@ -1,12 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { MapPin, Heart, Share2, Lock, Phone, MessageSquare, Copy, Check, Wifi, Wind, Zap, Car, Droplets, UtensilsCrossed, ShieldCheck, Layers } from 'lucide-react'
+import { toast } from 'sonner'
 import { VastoqBadge, VerifiedAvatar, Chip } from '@/components/ui/vastoq-badge'
 import UnlockGate from './UnlockGate'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { Listing } from './ListingCard'
+import { usePrices } from '@/hooks/usePrices'
 
 // Leaflet must not be server-side rendered
 const ListingMap = dynamic(() => import('./ListingMap'), {
@@ -37,12 +40,58 @@ interface ListingDetailProps {
 
 export default function ListingDetail({ listing }: ListingDetailProps) {
   const { user } = useCurrentUser()
+  const router = useRouter()
+  const prices = usePrices()
 
   const [activePhoto, setActivePhoto] = useState(0)
-  const [saved,       setSaved]       = useState(false)
+  const [saved,       setSaved]       = useState(listing.isSaved ?? false)
+  const [saving,      setSaving]      = useState(false)
   const [showUnlock,  setShowUnlock]  = useState(false)
   const [unlocked,    setUnlocked]    = useState(!listing.isLocked)
   const [copied,      setCopied]      = useState(false)
+
+  // Keep saved in sync if the listing prop changes (e.g. after navigation)
+  useEffect(() => { setSaved(listing.isSaved ?? false) }, [listing.id])
+
+  const handleToggleSave = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (saving) return
+    if (!user?.userId) { router.push('/login'); return }
+    const next = !saved
+    setSaved(next)
+    try {
+      setSaving(true)
+      const res  = await fetch('/api/saved-listings/toggle', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing_id: listing.id }),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        setSaved(json.data.saved)
+        toast.success(
+          json.data.saved ? 'Added to saved listings' : 'Removed from saved listings',
+          { duration: 2500 }
+        )
+      } else {
+        setSaved(!next) // revert on error
+      }
+    } catch {
+      setSaved(!next)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Guard: redirect to login if not authenticated when trying to unlock
+  const openUnlock = () => {
+    if (!user) {
+      router.push(`/login?next=${encodeURIComponent(`/rentals/${listing.id}`)}`)
+      return
+    }
+    setShowUnlock(true)
+  }
 
   const [unlockedData, setUnlockedData] = useState<{
     phone?: string
@@ -78,6 +127,26 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
     checkExistingUnlock()
   }, [user, listing.id, listing.isLocked])
 
+  // Fetch real saved status on mount — listing.isSaved is not auth-aware server-side
+  useEffect(() => {
+    if (!user?.userId) return
+
+    async function checkSavedStatus() {
+      try {
+        const res = await fetch(
+          `/api/saved-listings/status?listing_id=${listing.id}`,
+          { credentials: 'include' }
+        )
+        if (!res.ok) return
+        const json = await res.json()
+        setSaved(json.data?.saved ?? false)
+      } catch { /* silent — optimistic state stays as-is */ }
+    }
+
+    checkSavedStatus()
+  }, [user?.userId, listing.id])
+
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       {/* Breadcrumb */}
@@ -111,8 +180,9 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
               </div>
               <div className="absolute top-3 right-3 flex gap-2">
                 <button
-                  onClick={() => setSaved(!saved)}
-                  className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow-sm"
+                  onClick={handleToggleSave}
+                  disabled={saving}
+                  className={`w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-150 ${saving ? 'opacity-60' : ''}`}
                   aria-label={saved ? 'Remove from saved' : 'Save listing'}
                 >
                   <Heart size={16} className={saved ? 'fill-[#D84040] stroke-[#D84040]' : 'stroke-[#4A4640]'} />
@@ -215,7 +285,7 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
                       <p className="text-[13px] font-semibold text-[#1A1814]">{listing.locality}</p>
                       {!unlocked && (
                         <button
-                          onClick={() => setShowUnlock(true)}
+                          onClick={openUnlock}
                           className="mt-3 px-4 py-2 bg-[#1B2B6B] text-white text-[13px] font-semibold rounded-[8px] hover:bg-[#2D3E8C] transition-colors"
                         >
                           Unlock location
@@ -236,7 +306,7 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
                   />
                   {!unlocked && (
                     <button
-                      onClick={() => setShowUnlock(true)}
+                      onClick={openUnlock}
                       className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border border-[#1B2B6B] text-[#1B2B6B] text-[13px] font-semibold rounded-[10px] hover:bg-[#E8ECF8] transition-colors"
                     >
                       <Lock size={14} />
@@ -331,18 +401,18 @@ const phone =
             ) : (
               <div className="space-y-2.5">
                 <button
-                  onClick={() => setShowUnlock(true)}
+                  onClick={openUnlock}
                   className="w-full flex items-center justify-center gap-2 py-3 bg-[#1B2B6B] text-white text-[14px] font-bold rounded-[10px] hover:bg-[#2D3E8C] transition-colors min-h-[48px]"
                 >
                   <Lock size={16} />
-                  Message owner — ₹20
+                  Message owner — ₹{prices.listing_unlock}
                 </button>
                 <button
-                  onClick={() => setShowUnlock(true)}
+                  onClick={openUnlock}
                   className="w-full flex items-center justify-center gap-2 py-3 border border-[#1B2B6B] text-[#1B2B6B] text-[14px] font-bold rounded-[10px] hover:bg-[#E8ECF8] transition-colors min-h-[48px]"
                 >
                   <Phone size={16} />
-                  Call owner — ₹20
+                  Call owner — ₹{prices.listing_unlock}
                 </button>
                 <p className="text-[11px] text-[#8A8480] text-center">
                   Unlock once to get contact + exact location

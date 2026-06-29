@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import TopNav from '@/components/nav/TopNav'
 import Footer from '@/components/nav/Footer'
@@ -27,9 +27,12 @@ const COMMON_SKILLS: Record<string, string[]> = {
   'Security Guard': ['Night Duty', 'CCTV Monitoring', 'Gate Management', 'First Aid'],
 }
 
-export default function WorkerRegisterPage() {
+export default function WorkerSetupPage() {
   const { user, loading: userLoading } = useCurrentUser()
   const router = useRouter()
+
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [loadingProfile, setLoadingProfile] = useState(true)
 
   const [form, setForm] = useState({
     category    : '',
@@ -46,7 +49,41 @@ export default function WorkerRegisterPage() {
   const [done,         setDone]         = useState(false)
   const [err,          setErr]          = useState('')
 
-  if (userLoading) {
+  useEffect(() => {
+    if (!user) {
+      if (!userLoading) {
+        setLoadingProfile(false)
+      }
+      return
+    }
+
+    async function checkExistingProfile() {
+      try {
+        const res = await fetch('/api/worker/profile', { credentials: 'include' })
+        const json = await res.json()
+        if (res.ok && json.data) {
+          setIsEditMode(true)
+          setForm({
+            category: json.data.category ?? '',
+            bio: json.data.bio ?? '',
+            city: json.data.city ?? '',
+            locality: json.data.locality ?? '',
+            rate_per_day: json.data.rate_per_day ? String(json.data.rate_per_day) : '',
+          })
+          setSkills(json.data.skills ?? [])
+          setServiceAreas(json.data.service_areas ?? [])
+        }
+      } catch (err) {
+        console.error('Error fetching worker profile:', err)
+      } finally {
+        setLoadingProfile(false)
+      }
+    }
+
+    checkExistingProfile()
+  }, [user, userLoading])
+
+  if (userLoading || loadingProfile) {
     return (
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">
         <Loader2 size={28} className="animate-spin text-[#1B2B6B]" />
@@ -88,8 +125,10 @@ export default function WorkerRegisterPage() {
 
     setSaving(true)
     try {
-      const res  = await fetch('/api/workers', {
-        method : 'POST',
+      const endpoint = isEditMode ? '/api/worker/profile' : '/api/workers'
+      const method = isEditMode ? 'PUT' : 'POST'
+      const res  = await fetch(endpoint, {
+        method,
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body   : JSON.stringify({
@@ -107,7 +146,7 @@ export default function WorkerRegisterPage() {
         setErr(json?.error?.message ?? json?.message ?? 'Something went wrong.')
       } else {
         setDone(true)
-        setTimeout(() => router.push('/workers'), 2500)
+        setTimeout(() => router.push('/worker/dashboard'), 2500)
       }
     } catch {
       setErr('Network error. Please try again.')
@@ -121,8 +160,14 @@ export default function WorkerRegisterPage() {
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">
         <div className="text-center p-8">
           <CheckCircle size={48} className="text-[#1D9E75] mx-auto mb-4" />
-          <h2 className="text-[22px] font-bold text-[#1A1814] mb-2">Profile created!</h2>
-          <p className="text-[14px] text-[#4A4640]">You're now listed as a worker. Redirecting…</p>
+          <h2 className="text-[22px] font-bold text-[#1A1814] mb-2">
+            {isEditMode ? 'Profile updated!' : 'Profile created!'}
+          </h2>
+          <p className="text-[14px] text-[#4A4640]">
+            {isEditMode 
+              ? 'Your profile has been updated. Redirecting…' 
+              : "You're now listed as a worker. Redirecting…"}
+          </p>
         </div>
       </div>
     )
@@ -135,8 +180,14 @@ export default function WorkerRegisterPage() {
       <TopNav />
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-[28px] font-bold text-[#1A1814] mb-1">Register as a Worker</h1>
-          <p className="text-[14px] text-[#4A4640]">Fill in your details and start getting hire requests directly.</p>
+          <h1 className="text-[28px] font-bold text-[#1A1814] mb-1">
+            {isEditMode ? 'Edit Worker Profile' : 'Register as a Worker'}
+          </h1>
+          <p className="text-[14px] text-[#4A4640]">
+            {isEditMode 
+              ? 'Update your profile information to keep clients updated.' 
+              : 'Fill in your details and start getting hire requests directly.'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -280,7 +331,11 @@ export default function WorkerRegisterPage() {
             type="submit" disabled={saving}
             className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#1B2B6B] text-white text-[15px] font-bold rounded-[12px] hover:bg-[#2D3E8C] transition-colors disabled:opacity-60 min-h-[52px]"
           >
-            {saving ? <><Loader2 size={16} className="animate-spin" /> Submitting…</> : 'Create my worker profile'}
+            {saving ? (
+              <><Loader2 size={16} className="animate-spin" /> Submitting…</>
+            ) : (
+              isEditMode ? 'Update my worker profile' : 'Create my worker profile'
+            )}
           </button>
 
           <p className="text-[12px] text-[#8A8480] text-center">

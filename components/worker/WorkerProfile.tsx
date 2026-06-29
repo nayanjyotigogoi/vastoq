@@ -1,10 +1,13 @@
 'use client'
 
 import { useState, Fragment, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Star, MapPin, Lock, Copy, Check, MessageSquare, Loader2 } from 'lucide-react'
 import { VerifiedAvatar, Chip } from '@/components/ui/vastoq-badge'
 import UnlockGate from '@/components/listing/UnlockGate'
 import type { Worker } from './WorkerCard'
+import { usePrices } from '@/hooks/usePrices'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const SLOTS = ['Morning', 'Afternoon', 'Evening']
@@ -16,12 +19,24 @@ const mockAvailability = (worker: Worker) =>
   }, {})
 
 export default function WorkerProfile({ worker }: { worker: Worker }) {
+  const prices = usePrices()
+  const { user } = useCurrentUser()
+  const router = useRouter()
   const [showUnlock,    setShowUnlock]    = useState(false)
   const [unlocked,      setUnlocked]      = useState(worker.isUnlocked ?? false)
   const [revealedPhone, setRevealedPhone] = useState<string | undefined>(worker.phone)
   const [copied,        setCopied]        = useState(false)
   const [statusLoading, setStatusLoading] = useState(true)
   const availability = mockAvailability(worker)
+
+  // Guard: redirect to login if not authenticated when trying to unlock
+  const openUnlock = () => {
+    if (!user) {
+      router.push(`/login?next=${encodeURIComponent(`/workers/${worker.id}`)}`)
+      return
+    }
+    setShowUnlock(true)
+  }
 
   // Check if user has already unlocked this worker
   useEffect(() => {
@@ -182,11 +197,11 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
             ) : (
               <div className="space-y-2.5">
                 <button
-                  onClick={() => setShowUnlock(true)}
+                  onClick={openUnlock}
                   className="w-full flex items-center justify-center gap-2 py-3 bg-[#1B2B6B] text-white text-[14px] font-bold rounded-[10px] hover:bg-[#2D3E8C] transition-colors min-h-[48px]"
                 >
                   <Lock size={16} />
-                  Unlock number — ₹20
+                  Unlock number — ₹{prices.worker_unlock}
                 </button>
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-center text-[#8A8480]">
                   <div className="bg-[#F5F0E8] rounded-[8px] p-2">Pack of 7<br /><span className="font-bold text-[#1B2B6B]">₹100</span></div>

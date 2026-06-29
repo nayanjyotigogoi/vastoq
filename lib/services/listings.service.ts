@@ -32,6 +32,8 @@ export interface ListingFilters {
 
   page?: number
   per_page?: number
+
+  user_id?: string
 }
 
 export async function listListings(

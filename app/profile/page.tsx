@@ -64,6 +64,7 @@ export default function ProfilePage() {
             body: JSON.stringify({
             name: form.name,
             email: form.email,
+            phone: form.phone,
             }),
         }
         )
@@ -172,10 +173,16 @@ export default function ProfilePage() {
 
             <input
             id="phone"
-            type="text"
+            type="tel"
             value={form.phone}
-            disabled
-            className="w-full border border-[#E5E0D5] rounded-[12px] px-4 py-3 bg-gray-100 cursor-not-allowed"
+            onChange={(e) =>
+                setForm({
+                ...form,
+                phone: e.target.value.replace(/\D/g, '').slice(0, 10),
+                })
+            }
+            placeholder="10-digit mobile number"
+            className="w-full border border-[#E5E0D5] rounded-[12px] px-4 py-3 outline-none focus:border-[#1B2B6B]"
             />
             </div>
 
