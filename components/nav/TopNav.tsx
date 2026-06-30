@@ -50,6 +50,15 @@ export default function TopNav() {
       : 'text-[14px] font-medium text-[#4A4640] hover:text-[#1B2B6B] transition-colors'
   }
 
+  const dashboardPath = (() => {
+    switch (user?.role) {
+      case 'owner':  return '/owner/dashboard'
+      case 'worker': return '/worker/dashboard'
+      case 'admin':  return '/admin'
+      default:       return '/dashboard'
+    }
+  })()
+
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -129,12 +138,14 @@ export default function TopNav() {
             How It Works
           </Link>
 
-          <Link
-            href="/owner/listings/new"
-            className={getLinkClass('/owner/listings/new')}
-          >
-            List Property
-          </Link>
+          {(!user || user.role === 'owner' || user.role === 'admin') && (
+            <Link
+              href="/owner/listings/new"
+              className={getLinkClass('/owner/listings/new')}
+            >
+              List Property
+            </Link>
+          )}
         </nav>
 
         {/* Right Side */}
@@ -177,7 +188,7 @@ export default function TopNav() {
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-52 bg-white border border-[#E5E0D5] rounded-xl shadow-lg overflow-hidden">
                     <Link
-                      href="/dashboard"
+                      href={dashboardPath}
                       className="block px-4 py-3 text-sm hover:bg-[#F8F8F8]"
                       onClick={() =>
                         setDropdownOpen(false)
@@ -279,12 +290,14 @@ export default function TopNav() {
             How It Works
           </Link>
 
-          <Link
-            href="/owner/listings/new"
-            className={getLinkClass('/owner/listings/new', true)}
-          >
-            List Property
-          </Link>
+          {(!user || user.role === 'owner' || user.role === 'admin') && (
+            <Link
+              href="/owner/listings/new"
+              className={getLinkClass('/owner/listings/new', true)}
+            >
+              List Property
+            </Link>
+          )}
 
           {!user ? (
             <div className="flex gap-2 pt-2">
@@ -305,7 +318,7 @@ export default function TopNav() {
           ) : (
             <div className="border-t border-[#F5F0E8] pt-3 flex flex-col gap-2">
               <Link
-                href="/dashboard"
+                href={dashboardPath}
                 className="text-[15px] font-medium py-2"
               >
                 Dashboard

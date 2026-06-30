@@ -354,6 +354,9 @@ export default function TenantDashboard() {
     if (!saved.listing) return null
 
     const listing = saved.listing
+    const unlocked = (dashboardData?.unlocks ?? []).some(
+      (u: any) => String(u.listing_id ?? u.listing?.id) === String(listing.id)
+    )
 
     return (
       <ListingCard
@@ -415,7 +418,7 @@ export default function TenantDashboard() {
             ? Number(listing.longitude)
             : undefined,
 
-          isLocked: false,
+          isLocked: !unlocked,
 
           isSaved: true,
         }}

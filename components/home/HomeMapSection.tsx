@@ -66,7 +66,7 @@ function normalise(l: any): Listing {
     isPopular:  (l.view_count ?? 0) > 100,
     isBoosted:  l.is_featured ?? false,
     owner: { name: l.owner?.name ?? 'Owner', verified: l.owner?.is_verified ?? false },
-    isLocked:  true,
+    isLocked:  !(l.is_unlocked ?? false),
     latitude:  l.latitude  != null ? Number(l.latitude)  : undefined,
     longitude: l.longitude != null ? Number(l.longitude) : undefined,
     bhkRaw:    l.bhk_type ?? undefined,
@@ -98,7 +98,7 @@ export default function HomeMapSection() {
   useEffect(() => {
     if (fetched.current) return
     fetched.current = true
-    fetch('/api/listings?per_page=500')
+    fetch('/api/listings?per_page=500', { credentials: 'include' })
       .then((r) => r.json())
       .then((json) => {
         const items = json?.data?.data?.data ?? []

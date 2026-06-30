@@ -14,9 +14,11 @@ import {
   XCircle,
   MoreVertical,
   ChevronRight,
+  Zap,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import BoostGate from '@/components/listing/BoostGate'
 
 const STATUS_CONFIG = {
   approved: { label: 'Live',           color: 'bg-[#E1F5EE] text-[#1D9E75]' },
@@ -33,12 +35,18 @@ type DashboardListing = {
   status: 'approved' | 'pending' | 'rejected'
   view_count: number
   unlock_count: number
+  is_featured?: boolean
+  featured_until?: string | null
 }
 
 export default function OwnerDashboard() {
   const { user, loading: userLoading } = useCurrentUser()
   const [listings, setListings] = useState<DashboardListing[]>([])
   const [loading, setLoading] = useState(true)
+  const [boostingListing, setBoostingListing] = useState<DashboardListing | null>(null)
+
+  const isActivelyFeatured = (l: DashboardListing) =>
+    !!l.is_featured && !!l.featured_until && new Date(l.featured_until) > new Date()
 
   useEffect(() => {
     if (!user?.userId) return
@@ -269,6 +277,19 @@ export default function OwnerDashboard() {
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {isActivelyFeatured(listing) ? (
+                        <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] bg-[#FEF3DC] text-[#E8A020] text-[11px] font-bold">
+                          <Zap size={12} /> Boosted
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => setBoostingListing(listing)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] border border-[#E8A020]/30 text-[#E8A020] text-[11px] font-bold hover:bg-[#FEF3DC] transition-colors"
+                        >
+                          <Zap size={12} /> Boost
+                        </button>
+                      )}
+
                       <Link
                         href={`/rentals/${listing.id}`}
                         className="p-1.5 rounded-[6px] hover:bg-[#E8ECF8] transition-colors"
@@ -294,22 +315,44 @@ export default function OwnerDashboard() {
         </section>
 
         {/* CTA banner */}
-        <div className="mt-8 bg-[#1B2B6B] rounded-[18px] p-6 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-white font-bold text-[16px] mb-1">
-              Boost your listing for more visibility
-            </p>
+        {listings.some((l) => !isActivelyFeatured(l)) && (
+          <div className="mt-8 bg-[#1B2B6B] rounded-[18px] p-6 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-white font-bold text-[16px] mb-1">
+                Boost your listing for more visibility
+              </p>
 
-            <p className="text-white/60 text-[13px]">
-              Featured listings get 3x more unlocks on average.
-            </p>
+              <p className="text-white/60 text-[13px]">
+                Featured listings get 3x more unlocks on average.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setBoostingListing(listings.find((l) => !isActivelyFeatured(l)) ?? null)}
+              className="flex-shrink-0 px-4 py-2.5 bg-[#E8A020] text-white text-[13px] font-bold rounded-[10px] hover:bg-[#d48f10] transition-colors"
+            >
+              Boost listing
+            </button>
           </div>
-
-          <button className="flex-shrink-0 px-4 py-2.5 bg-[#E8A020] text-white text-[13px] font-bold rounded-[10px] hover:bg-[#d48f10] transition-colors">
-            Boost listing
-          </button>
-        </div>
+        )}
       </main>
+
+      {boostingListing && (
+        <BoostGate
+          listingId={boostingListing.id}
+          listingTitle={boostingListing.title}
+          onClose={() => setBoostingListing(null)}
+          onSuccess={(data) => {
+            setListings((prev) =>
+              prev.map((l) =>
+                l.id === boostingListing.id
+                  ? { ...l, is_featured: true, featured_until: data?.featured_until ?? l.featured_until }
+                  : l
+              )
+            )
+          }}
+        />
+      )}
 
       <Footer />
       <MobileNav />
