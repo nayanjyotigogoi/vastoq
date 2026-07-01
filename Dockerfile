@@ -1,34 +1,43 @@
-# ---------- Builder ----------
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
-ENV NEXT_PUBLIC_API_URL=https://tohfaah.space
-ENV NEXT_PUBLIC_APP_URL=https://myadkaro.online
+ARG NEXT_PUBLIC_APP_NAME
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_BACKEND_URL
+ARG NEXT_PUBLIC_STORAGE_URL
+ARG NEXT_PUBLIC_RAZORPAY_KEY_ID
+ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+ARG NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID
 
-# Copy source ( .dockerignore MUST exclude .next )
+ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_PUBLIC_STORAGE_URL=$NEXT_PUBLIC_STORAGE_URL
+ENV NEXT_PUBLIC_RAZORPAY_KEY_ID=$NEXT_PUBLIC_RAZORPAY_KEY_ID
+ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+ENV NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=$NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID
+
 COPY . .
 
-# Force clean build
-RUN rm -rf .next && npm run build
+RUN npm run build
 
 
-# ---------- Runner ----------
-FROM node:20-alpine AS runner
+FROM node:20-alpine
 
 WORKDIR /app
+
 ENV NODE_ENV=production
 
-# Copy only what is needed to run Next.js
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.mjs ./
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["npm","start"]
