@@ -2,7 +2,13 @@ import axios from "axios";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+<<<<<<< Updated upstream
 function getAuthHeaders(token?: string) {
+=======
+function getAuthHeaders() {
+  const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
+
+>>>>>>> Stashed changes
   return {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     Accept: "application/json",
@@ -116,7 +122,11 @@ export async function getMyListings(
   return response.data
 }
 
+<<<<<<< Updated upstream
 export const getOwnerListings = getMyListings
+=======
+export const getOwnerListings = getMyListings;
+>>>>>>> Stashed changes
 
 export async function unlockListing(
   id: number | string,
