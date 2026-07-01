@@ -2,11 +2,15 @@ import axios from "axios";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+<<<<<<< Updated upstream
+function getAuthHeaders(token?: string) {
+=======
 function getAuthHeaders() {
-  const token = localStorage.getItem("token");
+  const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
 
+>>>>>>> Stashed changes
   return {
-    Authorization: `Bearer ${token}`,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     Accept: "application/json",
   };
 }
@@ -75,13 +79,14 @@ export async function createListing(
 
 export async function updateListing(
   id: number | string,
-  payload: any
+  payload: any,
+  token?: string
 ) {
   const response = await axios.put(
     `${API_URL}/listings/${id}`,
     payload,
     {
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
     }
   );
 
@@ -89,12 +94,13 @@ export async function updateListing(
 }
 
 export async function deleteListing(
-  id: number | string
+  id: number | string,
+  token?: string
 ) {
   const response = await axios.delete(
     `${API_URL}/listings/${id}`,
     {
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
     }
   );
 
@@ -116,18 +122,25 @@ export async function getMyListings(
   return response.data
 }
 
+<<<<<<< Updated upstream
+export const getOwnerListings = getMyListings
+=======
+export const getOwnerListings = getMyListings;
+>>>>>>> Stashed changes
+
 export async function unlockListing(
   id: number | string,
   payload: {
     coupon_code?: string;
     payment_id?: string;
-  }
+  },
+  token?: string
 ) {
   const response = await axios.post(
     `${API_URL}/listings/${id}/unlock`,
     payload,
     {
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
     }
   );
 

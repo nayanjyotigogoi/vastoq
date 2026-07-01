@@ -81,6 +81,49 @@ export default function NewListingPage() {
   const [loading, setLoading] = useState(false)
   const [locating, setLocating] = useState(false)
   const [error, setError] = useState('')
+  const [photoUrls, setPhotoUrls] = useState<string[]>([])
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+
+  async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    e.target.value = '' // allow re-selecting the same file later
+
+    if (photoUrls.length + files.length > 6) {
+      setPhotoError('Max 6 photos per listing.')
+      return
+    }
+
+    setPhotoError('')
+    setUploadingPhotos(true)
+    try {
+      const formData = new FormData()
+      files.forEach((f) => formData.append('photos', f))
+
+      const res  = await fetch('/api/uploads/listing-photos', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+      const json = await res.json()
+
+      if (!res.ok) {
+        setPhotoError(json?.error?.message ?? 'Failed to upload photos')
+        return
+      }
+
+      setPhotoUrls((prev) => [...prev, ...(json.data?.urls ?? [])])
+    } catch {
+      setPhotoError('Network error while uploading. Please try again.')
+    } finally {
+      setUploadingPhotos(false)
+    }
+  }
+
+  function removePhoto(url: string) {
+    setPhotoUrls((prev) => prev.filter((u) => u !== url))
+  }
 
   useEffect(() => {
     if (!form.latitude || !form.longitude) return
@@ -242,7 +285,7 @@ export default function NewListingPage() {
         rent_per_month: Number(form.rent),
         deposit: Number(form.deposit || 0),
         amenities: form.amenities,
-        photos: [],
+        photos: photoUrls,
         area_sqft: Number(form.areaSqft || 0),
         floor_number: Number(form.floor || 0),
         latitude: form.latitude ? Number(form.latitude) : undefined,
@@ -541,14 +584,56 @@ export default function NewListingPage() {
                 <div>
                   <h2 className="text-[17px] font-bold text-[#1A1814] mb-1">Photos</h2>
                   <p className="text-[12px] text-[#8A8480] mb-5">Listings with photos get 5x more unlocks. Add at least 3 good photos.</p>
-                  <div className="border-2 border-dashed border-[#D0C9BC] rounded-[14px] p-10 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[#1B2B6B] hover:bg-[#E8ECF8]/30 transition-all">
+
+                  <label
+                    htmlFor="photo-upload-input"
+                    className={`border-2 border-dashed rounded-[14px] p-10 flex flex-col items-center justify-center text-center transition-all ${
+                      uploadingPhotos
+                        ? 'border-[#D0C9BC] opacity-60 cursor-wait'
+                        : 'border-[#D0C9BC] cursor-pointer hover:border-[#1B2B6B] hover:bg-[#E8ECF8]/30'
+                    }`}
+                  >
+                    <input
+                      id="photo-upload-input"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      className="hidden"
+                      disabled={uploadingPhotos || photoUrls.length >= 6}
+                      onChange={handlePhotoSelect}
+                    />
                     <div className="w-14 h-14 rounded-full bg-[#E8ECF8] flex items-center justify-center mb-3">
-                      <Upload size={22} className="text-[#1B2B6B]" />
+                      {uploadingPhotos
+                        ? <Loader2 size={22} className="text-[#1B2B6B] animate-spin" />
+                        : <Upload size={22} className="text-[#1B2B6B]" />}
                     </div>
-                    <p className="text-[14px] font-semibold text-[#1A1814] mb-1">Click to upload photos</p>
-                    <p className="text-[12px] text-[#8A8480]">JPG, PNG up to 10MB each · Max 12 photos</p>
-                    <p className="text-[11px] text-[#D0C9BC] mt-3 italic">Photo upload available after backend integration</p>
-                  </div>
+                    <p className="text-[14px] font-semibold text-[#1A1814] mb-1">
+                      {uploadingPhotos ? 'Uploading…' : 'Click to upload photos'}
+                    </p>
+                    <p className="text-[12px] text-[#8A8480]">JPG, PNG, WebP up to ~1.9MB each · Max 6 photos</p>
+                  </label>
+
+                  {photoError && (
+                    <p className="text-[12px] text-red-600 mt-2">{photoError}</p>
+                  )}
+
+                  {photoUrls.length > 0 && (
+                    <div className="grid grid-cols-3 gap-3 mt-5">
+                      {photoUrls.map((url) => (
+                        <div key={url} className="relative group rounded-[10px] overflow-hidden border border-[#E5E0D5] aspect-square">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(url)}
+                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white text-[12px] flex items-center justify-center hover:bg-black/80"
+                            aria-label="Remove photo"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               {error && (

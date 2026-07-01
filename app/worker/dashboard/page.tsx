@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import AadhaarVerificationCard from '@/components/worker/AadhaarVerificationCard'
 
 type WorkerProfile = {
   id: number
@@ -38,6 +39,10 @@ type WorkerProfile = {
   jobs_completed: number
   is_verified: boolean
   aadhaar_status: string
+  aadhaar_front_url: string | null
+  aadhaar_back_url: string | null
+  aadhaar_submitted_at: string | null
+  aadhaar_rejection_reason: string | null
   available_today: boolean
   service_areas: string[]
 }
@@ -383,26 +388,10 @@ export default function WorkerDashboard() {
           {/* Right */}
           <div className="space-y-4">
             {/* Verification status */}
-            <div className={`rounded-[16px] border p-5 ${worker.is_verified ? 'bg-[#E1F5EE] border-[#1D9E75]/20' : 'bg-[#FEF3DC] border-[#E8A020]/20'}`}>
-              <div className="flex items-center gap-3 mb-3">
-                <ShieldCheck size={22} className={worker.is_verified ? 'text-[#1D9E75]' : 'text-[#E8A020]'} />
-                <div>
-                  <p className="text-[14px] font-bold text-[#1A1814]">
-                    {worker.is_verified ? 'Aadhaar Verified' : 'Verification Pending'}
-                  </p>
-                  <p className="text-[11px] text-[#4A4640]">
-                    {worker.is_verified
-                      ? 'Your profile shows a verified badge'
-                      : `Status: ${worker.aadhaar_status}`}
-                  </p>
-                </div>
-              </div>
-              <p className="text-[12px] text-[#4A4640] leading-relaxed">
-                {worker.is_verified
-                  ? 'Verified workers receive 4x more contact unlocks than unverified profiles.'
-                  : 'Complete Aadhaar verification to build trust with clients.'}
-              </p>
-            </div>
+            <AadhaarVerificationCard
+              worker={worker}
+              onSubmitted={(updated) => setWorker({ ...worker, ...updated })}
+            />
 
             {/* Profile snapshot */}
             <div className="bg-white rounded-[16px] border border-[#E5E0D5] p-5 shadow-vastoq-sm">

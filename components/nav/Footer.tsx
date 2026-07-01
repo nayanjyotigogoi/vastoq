@@ -43,9 +43,11 @@ export default function Footer() {
             <h4 className="text-[11px] font-bold uppercase tracking-widest text-white/40 mb-4">Company</h4>
             <ul className="space-y-2.5">
               {[
-                { href: '/about', label: 'About' },
                 { href: '/how-it-works', label: 'How It Works' },
-                { href: '/contact', label: 'Contact' },
+                { href: '/contact', label: 'Contact & Grievance' },
+                { href: '/terms', label: 'Terms & Conditions' },
+                { href: '/privacy', label: 'Privacy Policy' },
+                { href: '/refund-policy', label: 'Refund & Cancellation' },
               ].map((l) => (
                 <li key={l.href}>
                   <Link href={l.href} className="text-[13px] text-white/70 hover:text-white transition-colors">
@@ -60,19 +62,21 @@ export default function Footer() {
           <div>
             <h4 className="text-[11px] font-bold uppercase tracking-widest text-white/40 mb-4">Contact</h4>
             <ul className="space-y-2.5 text-[13px] text-white/70">
-              <li>hello@vastoq.in</li>
-              <li>Guwahati, Assam 781001</li>
+              <li>admin@anvayasoltuion.com</li>
+              <li>Dhemaji, Assam, India</li>
+              <li className="text-white/40 text-[11px] mt-2">Operated by Anvaya Solution</li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-[12px] text-white/40">
-            &copy; {new Date().getFullYear()} Vastoq. All rights reserved. vastoq.in — Guwahati&apos;s trusted living platform.
+            &copy; {new Date().getFullYear()} Vastoq, operated by Anvaya Solution. All rights reserved.
           </p>
           <div className="flex gap-4 text-[12px] text-white/40">
             <Link href="/privacy" className="hover:text-white/70 transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-white/70 transition-colors">Terms</Link>
+            <Link href="/refund-policy" className="hover:text-white/70 transition-colors">Refunds</Link>
           </div>
         </div>
       </div>

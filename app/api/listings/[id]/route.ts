@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ok, error, noContent } from "@/lib/api/response";
-import { UpdateListingSchema } from "@/lib/api/validators";
 import { requireAuth } from "@/lib/auth";
 import { getListing, updateListing, deleteListing } from "@/lib/services/listings.service";
 
@@ -10,9 +9,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const listing = getListing(id, true);
-  if (!listing) return error("Listing not found", 404);
-  return ok(listing);
+  try {
+    const listing = await getListing(id);
+    return ok(listing);
+  } catch (e: any) {
+    const status = e?.response?.status === 404 ? 404 : 500;
+    return error(e?.response?.data?.message ?? "Listing not found", status);
+  }
 }
 
 // PATCH /api/listings/:id
@@ -24,13 +27,16 @@ export async function PATCH(
   const guard = await requireAuth(req);
   if (guard instanceof NextResponse) return guard;
 
-  const body = await req.json().catch(() => ({}));
-  const parsed = UpdateListingSchema.safeParse(body);
-  if (!parsed.success) return error(parsed.error.issues[0].message, 422);
+  const body  = await req.json().catch(() => ({}));
+  const token = req.cookies.get("token")?.value;
 
-  const result = updateListing(id, guard.session.userId, guard.session.role, parsed.data);
-  if ("error" in result) return error(result.error, result.code === "NOT_FOUND" ? 404 : 403, result.code);
-  return ok(result);
+  try {
+    const result = await updateListing(id, body, token);
+    return ok(result);
+  } catch (e: any) {
+    const status = e?.response?.status ?? 500;
+    return error(e?.response?.data?.message ?? "Failed to update listing", status);
+  }
 }
 
 // DELETE /api/listings/:id
@@ -42,7 +48,13 @@ export async function DELETE(
   const guard = await requireAuth(req);
   if (guard instanceof NextResponse) return guard;
 
-  const result = deleteListing(id, guard.session.userId, guard.session.role);
-  if ("error" in result) return error(result.error, result.code === "NOT_FOUND" ? 404 : 403, result.code);
-  return noContent();
+  const token = req.cookies.get("token")?.value;
+
+  try {
+    await deleteListing(id, token);
+    return noContent();
+  } catch (e: any) {
+    const status = e?.response?.status ?? 500;
+    return error(e?.response?.data?.message ?? "Failed to delete listing", status);
+  }
 }

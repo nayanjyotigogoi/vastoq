@@ -70,7 +70,7 @@ function normalise(l: any): Listing {
       verified: l.owner?.is_verified ?? false,
     },
 
-    isLocked:    true,
+    isLocked:    !(l.is_unlocked ?? false),
     description: l.description ?? undefined,
 
     latitude:  l.latitude  != null ? Number(l.latitude)  : undefined,
@@ -197,24 +197,13 @@ export default function RentalsClient() {
         }
       }
 
-      // Progressive search: if the full term returns 0, retry with each
-      // shorter prefix (word by word) until we get results.
-      // e.g. "Dibrugarh West" → "Dibrugarh" → no search term
-      async function fetchWithFallback(searchTerm: string): Promise<any> {
-        const p = new URLSearchParams(params)
-        if (searchTerm) p.set('search', searchTerm)
-        else p.delete('search')
-        const res  = await fetch(`/api/listings?${p.toString()}`)
-        const data = await res.json()
-        const total: number = data?.data?.data?.total ?? 0
-        if (total > 0 || !searchTerm) return data
-        // Try dropping the last word and retry
-        const words = searchTerm.trim().split(/\s+/)
-        if (words.length <= 1) return data           // single word, no more fallback
-        return fetchWithFallback(words.slice(0, -1).join(' '))
-      }
+      // Progressive word-drop fallback (e.g. "Dibrugarh West" → "Dibrugarh")
+      // now happens server-side in a single request — no client round trips.
+      if (searchTerm) params.set('search', searchTerm)
+      else params.delete('search')
 
-      const json = await fetchWithFallback(searchTerm)
+      const res  = await fetch(`/api/listings?${params.toString()}`)
+      const json = await res.json()
 
       setTotalListings(
         json?.data?.data?.total ?? 0

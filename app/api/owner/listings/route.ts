@@ -8,6 +8,6 @@ export async function GET(req: NextRequest) {
   const guard = await requireRole(req, "owner", "admin");
   if (guard instanceof NextResponse) return guard;
 
-  const listings = getOwnerListings(guard.session.userId);
+  const listings = await getOwnerListings(String(guard.session.userId));
   return ok(listings);
 }

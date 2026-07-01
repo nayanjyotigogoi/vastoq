@@ -65,6 +65,60 @@ export async function getFurnitureItem(
   return json.data
 }
 
+export const listFurnitureItems = getFurnitureItems;
+
+export interface FurnitureEnquiry {
+  id: string
+  userId: string
+  furnitureId: number
+  name: string
+  phone: string
+  locality: string
+  message?: string | null
+  status: 'open' | 'contacted' | 'converted' | 'cancelled'
+  adminNotes?: string | null
+  createdAt: string
+}
+
+const _enquiries: FurnitureEnquiry[] = [];
+
+export function createEnquiry(userId: string, payload: FurnitureEnquiryPayload): FurnitureEnquiry {
+  const enquiry: FurnitureEnquiry = {
+    id: Math.random().toString(36).slice(2),
+    userId,
+    furnitureId: payload.furniture_id,
+    name: payload.name,
+    phone: payload.phone,
+    locality: payload.locality,
+    message: payload.message ?? null,
+    status: 'open',
+    adminNotes: null,
+    createdAt: new Date().toISOString(),
+  };
+  _enquiries.push(enquiry);
+  return enquiry;
+}
+
+export function getUserEnquiries(userId: string): FurnitureEnquiry[] {
+  return _enquiries.filter((e) => e.userId === userId);
+}
+
+export function listAllEnquiries(): FurnitureEnquiry[] {
+  return [..._enquiries].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+export function updateEnquiryStatus(
+  id: string,
+  status: FurnitureEnquiry['status'],
+  adminNotes?: string
+): FurnitureEnquiry | null {
+  const enquiry = _enquiries.find((e) => e.id === id);
+  if (!enquiry) return null;
+  enquiry.status = status;
+  if (adminNotes !== undefined) enquiry.adminNotes = adminNotes;
+  return enquiry;
+}
+
 export async function createFurnitureEnquiry(
   payload: FurnitureEnquiryPayload
 ) {

@@ -37,13 +37,13 @@ export default function HeroSection() {
         Flat: 'flat',
         PG: 'pg',
         Room: 'room',
+        'Shared Room': 'shared_room',
         House: 'house',
       }
 
-      params.set(
-        'property_type',
-        typeMap[type]
-      )
+      if (typeMap[type]) {
+        params.set('property_type', typeMap[type])
+      }
     }
 
     router.push(`/rentals?${params.toString()}`)

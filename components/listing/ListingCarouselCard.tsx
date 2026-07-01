@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { Heart, MapPin, Lock, ShieldCheck, Camera } from 'lucide-react'
+import { Heart, MapPin, Lock, ShieldCheck, Camera, Zap } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -70,11 +70,13 @@ export default function ListingCarouselCard({ listing }: { listing: Listing }) {
   return (
     <Link
       href={`/rentals/${listing.id}`}
-      className="group flex-shrink-0 w-[230px] block bg-white rounded-[16px] overflow-hidden
-                 border border-[#E5E0D5]
-                 shadow-[0_2px_8px_rgba(0,0,0,0.06)]
-                 hover:shadow-[0_8px_28px_rgba(0,0,0,0.13)]
-                 hover:-translate-y-1 transition-all duration-250"
+      className={cn(
+        'group flex-shrink-0 w-[230px] block bg-white rounded-[16px] overflow-hidden',
+        'shadow-[0_2px_8px_rgba(0,0,0,0.06)]',
+        'hover:shadow-[0_8px_28px_rgba(0,0,0,0.13)]',
+        'hover:-translate-y-1 transition-all duration-250',
+        listing.isBoosted ? 'border-2 border-[#E8A020]/60' : 'border border-[#E5E0D5]'
+      )}
     >
       {/* Photo */}
       <div className="relative overflow-hidden" style={{ height: 160 }}>
@@ -118,12 +120,19 @@ export default function ListingCarouselCard({ listing }: { listing: Listing }) {
           <Heart size={12} className={saved ? 'fill-[#D84040] stroke-[#D84040]' : 'stroke-[#4A4640]'} />
         </button>
 
-        {/* Verified badge — top left */}
-        {listing.isVerified && (
-          <div className="absolute top-2.5 left-2.5">
-            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#1D9E75] text-white text-[9px] font-bold">
-              <ShieldCheck size={8} strokeWidth={2.5} /> Verified
-            </span>
+        {/* Boosted + Verified badges — top left, stacked */}
+        {(listing.isBoosted || listing.isVerified) && (
+          <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
+            {listing.isBoosted && (
+              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#E8A020] text-white text-[9px] font-bold shadow-sm">
+                <Zap size={8} strokeWidth={2.5} /> Boosted
+              </span>
+            )}
+            {listing.isVerified && (
+              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#1D9E75] text-white text-[9px] font-bold shadow-sm">
+                <ShieldCheck size={8} strokeWidth={2.5} /> Verified
+              </span>
+            )}
           </div>
         )}
 
