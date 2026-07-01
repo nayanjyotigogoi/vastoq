@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import TopNav from '@/components/nav/TopNav'
 import MobileNav from '@/components/nav/MobileNav'
 import Footer from '@/components/nav/Footer'
@@ -14,7 +15,9 @@ export default function RentalsPage() {
     <div className="min-h-screen bg-[#FAFAF8]">
       <TopNav />
       <main>
-        <RentalsClient />
+        <Suspense fallback={null}>
+          <RentalsClient />
+        </Suspense>
       </main>
       <Footer />
       <MobileNav />
