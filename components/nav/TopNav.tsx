@@ -1,21 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Bell, Menu, X, ChevronDown } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { toast } from 'sonner'
 
-export default function TopNav() {
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [loggingOut, setLoggingOut] = useState(false)
-
+function ErrorToastHandler() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { user } = useCurrentUser()
 
   useEffect(() => {
     const errorParam = searchParams?.get('error')
@@ -28,13 +23,23 @@ export default function TopNav() {
         toast.error('Access denied: Administrator privileges required.')
       }
 
-      // Clean up parameter from URL
       const params = new URLSearchParams(searchParams.toString())
       params.delete('error')
       const newQuery = params.toString() ? `?${params.toString()}` : ''
       router.replace(`${pathname}${newQuery}`)
     }
   }, [searchParams, pathname, router])
+
+  return null
+}
+
+export default function TopNav() {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  const pathname = usePathname()
+  const { user } = useCurrentUser()
 
   const getLinkClass = (path: string, isMobile = false) => {
     const isActive = pathname === path || (path !== '/' && pathname?.startsWith(path))
@@ -97,6 +102,7 @@ export default function TopNav() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-[#E5E0D5] shadow-vastoq-sm">
+      <Suspense fallback={null}><ErrorToastHandler /></Suspense>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-[60px] gap-4">
         {/* Logo */}
         <Link href="/" className="flex-shrink-0 select-none">
