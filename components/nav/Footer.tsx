@@ -11,11 +11,11 @@ export default function Footer() {
               Vastoq<span className="text-[#1D9E75]">.</span>
             </div>
             <p className="text-[13px] text-white/60 leading-relaxed mb-4">
-              Your home. Your city. Your people. Guwahati&apos;s trusted living platform.
+              Your home. Your city. Your people. Assam&apos;s trusted living platform.
             </p>
             <div className="flex items-center gap-1 text-[12px] text-white/40">
               <span className="w-2 h-2 rounded-full bg-[#1D9E75] inline-block" />
-              Now live in Guwahati, Assam
+              Now live in Assam
             </div>
           </div>
 

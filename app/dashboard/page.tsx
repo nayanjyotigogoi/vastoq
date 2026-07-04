@@ -113,7 +113,7 @@ export default function TenantDashboard() {
 
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               <span className="text-[12px] text-[#8A8480]">
-                +91 {user?.phone}
+                 {user?.phone}
               </span>
 
               <span className="px-2 py-0.5 bg-[#E1F5EE] text-[#1D9E75] text-[11px] font-bold rounded-full capitalize">
