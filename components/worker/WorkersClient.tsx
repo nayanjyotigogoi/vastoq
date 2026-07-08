@@ -6,6 +6,7 @@ import { Search, X, Loader2, MapPin } from 'lucide-react'
 import WorkerCard from './WorkerCard'
 import type { Worker } from './WorkerCard'
 import UnlockGate from '@/components/listing/UnlockGate'
+import { resolveImageUrl } from '@/lib/utils'
 import { useUserLocation } from '@/hooks/useUserLocation'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 
@@ -18,7 +19,7 @@ function normalise(w: any): Worker {
   return {
     id              : String(w.id),
     name            : w.name ?? '',
-    avatar          : w.photo_url ?? undefined,
+    avatar          : resolveImageUrl(w.photo_url) || undefined,
     category        : w.category ?? '',
     skills          : Array.isArray(w.skills) ? w.skills : [],
     localities      : Array.isArray(w.service_areas) && w.service_areas.length

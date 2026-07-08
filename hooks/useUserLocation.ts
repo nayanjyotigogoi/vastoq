@@ -16,8 +16,8 @@ type LocationState =
   | { status: 'denied' }
   | { status: 'error'; message: string }
 
-const CACHE_KEY = 'vastoq_user_location'
-const CACHE_TTL = 30 * 60 * 1000 // 30 min
+const CACHE_KEY = 'vastoq_user_location_v2'
+const CACHE_TTL = 5 * 60 * 1000 // 5 min — short TTL so stale GPS results don't linger
 
 interface CachedLocation {
   location: UserLocation
@@ -128,7 +128,7 @@ export function useUserLocation() {
           setState({ status: 'error', message: 'Location unavailable' })
         }
       },
-      { timeout: 8000, maximumAge: 5 * 60 * 1000 }
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     )
   }, [])
 
