@@ -17,6 +17,7 @@ export interface ListingFilters {
   city?: string
   locality?: string
 
+  listing_class?: 'residential' | 'commercial'
   property_type?: string
   bhk_type?: string
   furnishing?: string

@@ -4,6 +4,7 @@ import TopNav from '@/components/nav/TopNav'
 import MobileNav from '@/components/nav/MobileNav'
 import Footer from '@/components/nav/Footer'
 import Link from 'next/link'
+import { resolveImageUrl } from '@/lib/utils'
 import {
   Star,
   Eye,
@@ -222,7 +223,7 @@ export default function WorkerDashboard() {
         <div className="bg-white rounded-[20px] border border-[#E5E0D5] shadow-vastoq-sm p-6 mb-6 flex items-start gap-5 flex-wrap">
           <div className="w-16 h-16 rounded-full bg-[#1D9E75] text-white text-[22px] font-extrabold flex items-center justify-center flex-shrink-0 overflow-hidden">
             {worker.photo_url
-              ? <img src={worker.photo_url} alt={worker.name} className="w-full h-full object-cover" />
+              ? <img src={resolveImageUrl(worker.photo_url)} alt={worker.name} className="w-full h-full object-cover" />
               : initial}
           </div>
 

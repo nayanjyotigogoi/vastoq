@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { MapPin } from 'lucide-react'
 import { loadGoogleMaps } from '@/lib/googleMaps'
+import { resolveImageUrl } from '@/lib/utils'
 import type { Listing } from './ListingCard'
 
 // -- BHK colour palette ---------------------------------------------
@@ -74,7 +75,7 @@ const YOU_HTML = `
 function popupHtml(listing: Listing, color: string, label: string): string {
   const rentStr = `\u20B9${listing.rent.toLocaleString('en-IN')}/mo`
   const photo = listing.photos?.[0]
-    ? `<img src="${listing.photos[0]}" alt="${listing.title}" style="width:100%;height:112px;object-fit:cover;display:block;"/>`
+    ? `<img src="${resolveImageUrl(listing.photos[0])}" alt="${listing.title}" style="width:100%;height:112px;object-fit:cover;display:block;"/>`
     : `<div style="width:100%;height:64px;display:flex;align-items:center;justify-content:center;background:${color}22;">
          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
        </div>`

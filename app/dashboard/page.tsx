@@ -5,6 +5,7 @@ import MobileNav from '@/components/nav/MobileNav'
 import Footer from '@/components/nav/Footer'
 import Link from 'next/link'
 import { Heart, Lock, MessageSquare, ChevronRight, Search, HardHat } from 'lucide-react'
+import { resolveImageUrl } from '@/lib/utils'
 import ListingCard from '@/components/listing/ListingCard'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useEffect, useState } from 'react'
@@ -219,7 +220,7 @@ export default function TenantDashboard() {
                   >
                     {unlock.listing?.photos?.[0] && (
                       <img
-                        src={unlock.listing.photos[0]}
+                        src={resolveImageUrl(unlock.listing.photos[0])}
                         alt={unlock.listing.title}
                         className="w-16 h-14 object-cover rounded-[10px] flex-shrink-0"
                       />

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { VerifiedAvatar } from '@/components/ui/vastoq-badge'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
-import { cn } from '@/lib/utils'
+import { cn, resolveImageUrl } from '@/lib/utils'
 import type { Listing } from './ListingCard'
 
 // Colour-coded BHK — same palette as map markers
@@ -63,7 +63,7 @@ export default function ListingRow({ listing, index }: ListingRowProps) {
 
   const color    = BHK_COLOR[listing.bhkRaw ?? ''] ?? DEFAULT_COLOR
   const bhkLabel = getBhkLabel(listing.bhkRaw, listing.bhk, listing.propertyType)
-  const photo    = listing.photos[0]
+  const photo    = resolveImageUrl(listing.photos[0])
 
   const specs = [
     listing.areaSqft  && { icon: Maximize2,  label: `${listing.areaSqft} sqft` },

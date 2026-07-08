@@ -3,6 +3,7 @@ import MobileNav from '@/components/nav/MobileNav'
 import Footer from '@/components/nav/Footer'
 import ListingDetail from '@/components/listing/ListingDetail'
 import { getListing } from '@/lib/services/listings.service'
+import { resolveImageUrl } from '@/lib/utils'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -91,7 +92,7 @@ async function fetchListing(id: string) {
           'Owner',
 
         avatar:
-          listing.owner?.profile_photo_url ||
+          resolveImageUrl(listing.owner?.profile_photo_url) ||
           undefined,
 
         verified:
@@ -112,6 +113,7 @@ async function fetchListing(id: string) {
       isCommercial:
         listing.listing_class === 'commercial',
 
+      ownerId: String(listing.owner_id ?? listing.owner?.id ?? ''),
       isLocked: true,
     }
   } catch (error) {
@@ -122,22 +124,44 @@ async function fetchListing(id: string) {
 
 export async function generateMetadata({ params }: Props) {
   const { id } = await params
-
   const listing = await fetchListing(id)
 
   if (!listing) {
-    return {
-      title: 'Listing Not Found | Vastoq',
-    }
+    return { title: 'Listing Not Found' }
   }
 
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://myadkaro.online'
+  const pageUrl = `${APP_URL}/rentals/${id}`
+  const ogImage = listing.photos?.[0] || `${APP_URL}/og-default.png`
+  const description = listing.description
+    ? listing.description.slice(0, 155)
+    : `${listing.furnishing} ${listing.propertyType} in ${listing.locality} · ₹${listing.rent.toLocaleString('en-IN')}/month · ${listing.deposit ? `₹${listing.deposit.toLocaleString('en-IN')} deposit` : 'No deposit info'}`
+
   return {
-    title: `${listing.title} — Vastoq`,
-    description:
-      listing.description ||
-      `${listing.locality} · ₹${listing.rent.toLocaleString(
-        'en-IN'
-      )}/month`,
+    title: listing.title,
+    description,
+    openGraph: {
+      title: `${listing.title} | Vastoq`,
+      description,
+      url: pageUrl,
+      siteName: 'Vastoq',
+      locale: 'en_IN',
+      type: 'website',
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: listing.title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${listing.title} | Vastoq`,
+      description,
+      images: [ogImage],
+    },
   }
 }
 

@@ -5,7 +5,7 @@ import { Heart, MapPin, Camera, Lock, ShieldCheck, Zap, Star } from 'lucide-reac
 import { useState, useEffect } from 'react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { VerifiedAvatar } from '@/components/ui/vastoq-badge'
-import { cn } from '@/lib/utils'
+import { cn, resolveImageUrl } from '@/lib/utils'
 import { toast } from 'sonner'
 
 export interface Listing {
@@ -32,6 +32,7 @@ export interface Listing {
     verified?: boolean
   }
   isLocked?: boolean
+  ownerId?: string
   description?: string
   amenities?: string[]
   latitude?: number
@@ -76,7 +77,7 @@ export default function ListingCard({ listing, photoHeight = 220, className, onS
 
   useEffect(() => { setSaved((listing as any).isSaved ?? false) }, [listing])
 
-  const coverPhoto = listing.photos[0]
+  const coverPhoto = resolveImageUrl(listing.photos[0])
   const color      = BHK_COLOR[listing.bhkRaw ?? ''] ?? DEFAULT_COLOR
   const bhkLabel   = getBhkLabel(listing.bhkRaw, listing.bhk, listing.propertyType)
   const rentStr    = `₹${(listing.rent ?? 0).toLocaleString('en-IN')}`

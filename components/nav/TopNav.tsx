@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { Bell, Menu, X, ChevronDown } from 'lucide-react'
+import { Menu, X, ChevronDown } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { toast } from 'sonner'
+import NotificationBell from '@/components/nav/NotificationBell'
 
 function ErrorToastHandler() {
   const router = useRouter()
@@ -159,12 +160,7 @@ export default function TopNav() {
           {user ? (
             <>
               {/* Notifications */}
-              <button
-                className="relative p-2 rounded-lg hover:bg-[#E8ECF8] transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
-                aria-label="Notifications"
-              >
-                <Bell size={18} className="text-[#4A4640]" />
-              </button>
+              <NotificationBell />
 
               {/* User Dropdown */}
               <div
