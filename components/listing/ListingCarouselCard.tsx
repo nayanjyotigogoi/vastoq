@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Heart, MapPin, Lock, ShieldCheck, Camera, Zap } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
-import { cn } from '@/lib/utils'
+import { cn, resolveImageUrl } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { Listing } from './ListingCard'
 
@@ -65,7 +65,7 @@ export default function ListingCarouselCard({ listing }: { listing: Listing }) {
 
   const color    = BHK_COLOR[listing.bhkRaw ?? ''] ?? DEFAULT_COLOR
   const bhkLabel = getBhkLabel(listing.bhkRaw, listing.bhk, listing.propertyType)
-  const photo    = listing.photos[0]
+  const photo    = resolveImageUrl(listing.photos[0])
 
   return (
     <Link

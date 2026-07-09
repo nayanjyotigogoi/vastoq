@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { Search, SlidersHorizontal, X, Map, List, Loader2, MapPin, Navigation } from 'lucide-react'
+import { Search, SlidersHorizontal, X, Map, List, Loader2, MapPin, Navigation, Bell, Check, Building2, Home } from 'lucide-react'
 import LocalityCarousel from './LocalityCarousel'
 import { useUserLocation } from '@/hooks/useUserLocation'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { Listing } from './ListingCard'
 import type { Listing as ApiListing } from '@/lib/types'
 
@@ -79,13 +80,9 @@ function normalise(l: any): Listing {
   }
 }
 
-const PROPERTY_TYPES = [
-  'Flat',
-  'PG',
-  'Room',
-  'Shared Room',
-  'House',
-]
+const RESIDENTIAL_TYPES = ['Flat', 'PG', 'Room', 'Shared Room', 'House']
+const COMMERCIAL_TYPES  = ['Office', 'Shop', 'Warehouse']
+const PROPERTY_TYPES = RESIDENTIAL_TYPES
 const BHK_OPTIONS = [
   '1RK',
   '1BHK',
@@ -104,6 +101,8 @@ const SORT_OPTIONS = [
 
 
 export default function RentalsClient() {
+  const { user } = useCurrentUser()
+  const [listingClass, setListingClass] = useState<'residential' | 'commercial'>('residential')
   const [locality, setLocality] = useState('')
   const [budget, setBudget] = useState<number | null>(null)
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
@@ -116,6 +115,10 @@ export default function RentalsClient() {
   const [allListings, setAllListings] = useState<Listing[]>([])
   const [totalListings, setTotalListings] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [showSaveSearch, setShowSaveSearch] = useState(false)
+  const [searchName, setSearchName] = useState('')
+  const [saveLoading, setSaveLoading] = useState(false)
+  const [saveDone, setSaveDone] = useState(false)
   // Track whether location was auto-applied (so user can dismiss the pill)
   const [locationApplied, setLocationApplied] = useState(false)
   const [locationDisplay, setLocationDisplay] = useState('') // suburb-level label for the pill
@@ -140,6 +143,8 @@ export default function RentalsClient() {
         params.append('max_rent', String(budget))
       }
 
+      params.append('listing_class', listingClass)
+
       if (verifiedOnly) {
         params.append('verified_only', '1')
       }
@@ -153,17 +158,10 @@ export default function RentalsClient() {
 
       if (selectedTypes.length === 1) {
         const typeMap: Record<string, string> = {
-          Flat: 'flat',
-          PG: 'pg',
-          Room: 'room',
-          'Shared Room': 'shared_room',
-          House: 'house',
+          Flat: 'flat', PG: 'pg', Room: 'room', 'Shared Room': 'shared_room', House: 'house',
+          Office: 'office', Shop: 'shop', Warehouse: 'warehouse',
         }
-
-        params.append(
-          'property_type',
-          typeMap[selectedTypes[0]]
-        )
+        params.append('property_type', typeMap[selectedTypes[0]])
       }
 
       if (selectedFurnishing.length === 1) {
@@ -310,7 +308,43 @@ export default function RentalsClient() {
     verifiedOnly,
     sort,
     viewMode,
+    listingClass,
   ])
+
+  const handleSaveSearch = async () => {
+    if (!user?.userId || !searchName.trim()) return
+    setSaveLoading(true)
+    try {
+      const filters: Record<string, any> = { listing_class: listingClass }
+      if (locality.trim()) filters.city = locality.trim()
+      if (budget !== null) filters.max_rent = budget
+      if (selectedTypes.length === 1) {
+        const m: Record<string, string> = { Flat:'flat',PG:'pg',Room:'room','Shared Room':'shared_room',House:'house',Office:'office',Shop:'shop',Warehouse:'warehouse' }
+        filters.property_type = m[selectedTypes[0]]
+      }
+      if (selectedBhk.length === 1) {
+        const m: Record<string, string> = { '1RK':'1rk','1BHK':'1bhk','2BHK':'2bhk','3BHK':'3bhk','4BHK':'4bhk','5BHK':'5bhk' }
+        filters.bhk_type = m[selectedBhk[0]]
+      }
+      if (selectedFurnishing.length === 1) {
+        const m: Record<string, string> = { Furnished:'fully_furnished','Semi-furnished':'semi_furnished',Unfurnished:'unfurnished' }
+        filters.furnishing = m[selectedFurnishing[0]]
+      }
+      const res = await fetch('/api/saved-searches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.userId, name: searchName.trim(), filters }),
+      })
+      if (res.ok) {
+        setSaveDone(true)
+        setShowSaveSearch(false)
+        setSearchName('')
+        setTimeout(() => setSaveDone(false), 3000)
+      }
+    } finally {
+      setSaveLoading(false)
+    }
+  }
 
   const filtered = allListings
 
@@ -337,13 +371,34 @@ export default function RentalsClient() {
 
   
 
+  const activePropertyTypes = listingClass === 'commercial' ? COMMERCIAL_TYPES : RESIDENTIAL_TYPES
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+
+      {/* Residential / Commercial tab */}
+      <div className="flex gap-1 p-1 bg-[#F0EBE3] rounded-[12px] mb-6 w-fit">
+        <button
+          onClick={() => { setListingClass('residential'); setSelectedTypes([]) }}
+          className={`flex items-center gap-2 px-5 py-2 rounded-[10px] text-[13px] font-bold transition-all ${listingClass === 'residential' ? 'bg-white text-[#1B2B6B] shadow-sm' : 'text-[#6F6A63] hover:text-[#1A1814]'}`}
+        >
+          <Home size={14} /> Residential
+        </button>
+        <button
+          onClick={() => { setListingClass('commercial'); setSelectedTypes([]); setSelectedBhk([]) }}
+          className={`flex items-center gap-2 px-5 py-2 rounded-[10px] text-[13px] font-bold transition-all ${listingClass === 'commercial' ? 'bg-white text-[#1B2B6B] shadow-sm' : 'text-[#6F6A63] hover:text-[#1A1814]'}`}
+        >
+          <Building2 size={14} /> Commercial
+        </button>
+      </div>
+
       {/* Page header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 flex-wrap mb-1">
           <h1 className="text-[28px] font-bold text-[#1A1814]">
-            {locality.trim() ? `Properties in ${locality}` : 'Rental Properties'}
+            {listingClass === 'commercial'
+              ? (locality.trim() ? `Commercial spaces in ${locality}` : 'Commercial Spaces')
+              : (locality.trim() ? `Properties in ${locality}` : 'Rental Properties')}
           </h1>
 
           {/* Location requesting spinner */}
@@ -370,9 +425,48 @@ export default function RentalsClient() {
           )}
         </div>
 
-        <p className="text-[14px] text-[#4A4640]">
-          {loading ? 'Loading…' : `${totalListings} listings found`}
-        </p>
+        <div className="flex items-center gap-3 flex-wrap mt-1">
+          <p className="text-[14px] text-[#4A4640]">
+            {loading ? 'Loading��' : `${totalListings} listings found`}
+          </p>
+          {/* Save search */}
+          {user?.userId && !saveDone && (
+            <button
+              onClick={() => setShowSaveSearch(!showSaveSearch)}
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-[#1B2B6B] hover:underline"
+            >
+              <Bell size={12} /> Save search alert
+            </button>
+          )}
+          {saveDone && (
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#1D9E75]">
+              <Check size={12} /> Search alert saved!
+            </span>
+          )}
+        </div>
+
+        {/* Save search inline form */}
+        {showSaveSearch && (
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <input
+              type="text"
+              placeholder='Name this alert, e.g. "2BHK Guwahati"'
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveSearch()}
+              className="px-3 py-2 border border-[#E5E0D5] rounded-[8px] text-[13px] text-[#1A1814] placeholder:text-[#8A8480] focus:outline-none focus:ring-2 focus:ring-[#1B2B6B]/30 w-64"
+              autoFocus
+            />
+            <button
+              onClick={handleSaveSearch}
+              disabled={!searchName.trim() || saveLoading}
+              className="px-4 py-2 bg-[#1B2B6B] text-white text-[13px] font-bold rounded-[8px] hover:bg-[#2D3E8C] disabled:opacity-60 transition-colors"
+            >
+              {saveLoading ? 'Saving…' : 'Save'}
+            </button>
+            <button onClick={() => setShowSaveSearch(false)} className="text-[12px] text-[#8A8480] hover:text-[#D84040]">Cancel</button>
+          </div>
+        )}
       </div>
 
       {/* Search + Sort bar */}
@@ -449,7 +543,7 @@ export default function RentalsClient() {
             <div>
               <p className="label-uppercase text-[#8A8480] mb-3">Property type</p>
               <div className="flex flex-wrap gap-2">
-                {PROPERTY_TYPES.map((t) => (
+                {activePropertyTypes.map((t) => (
                   <button
                     key={t}
                     onClick={() => toggleFilter(selectedTypes, t, setSelectedTypes)}

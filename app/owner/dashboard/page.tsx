@@ -4,6 +4,7 @@ import TopNav from '@/components/nav/TopNav'
 import MobileNav from '@/components/nav/MobileNav'
 import Footer from '@/components/nav/Footer'
 import Link from 'next/link'
+import { resolveImageUrl } from '@/lib/utils'
 import {
   PlusSquare,
   Eye,
@@ -15,6 +16,7 @@ import {
   MoreVertical,
   ChevronRight,
   Zap,
+  Pencil,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
@@ -220,7 +222,7 @@ export default function OwnerDashboard() {
                   >
                     {listing.photos?.[0] ? (
                       <img
-                        src={listing.photos[0]}
+                        src={resolveImageUrl(listing.photos[0])}
                         alt={listing.title}
                         className="w-14 h-12 object-cover rounded-[8px] flex-shrink-0"
                       />
@@ -293,18 +295,21 @@ export default function OwnerDashboard() {
                       <Link
                         href={`/rentals/${listing.id}`}
                         className="p-1.5 rounded-[6px] hover:bg-[#E8ECF8] transition-colors"
+                        title="View listing"
                       >
-                        <Eye
-                          size={15}
-                          className="text-[#4A4640]"
-                        />
+                        <Eye size={15} className="text-[#4A4640]" />
+                      </Link>
+
+                      <Link
+                        href={`/owner/listings/${listing.id}/edit`}
+                        className="p-1.5 rounded-[6px] hover:bg-[#E8ECF8] transition-colors"
+                        title="Edit listing"
+                      >
+                        <Pencil size={15} className="text-[#4A4640]" />
                       </Link>
 
                       <button className="p-1.5 rounded-[6px] hover:bg-[#E8ECF8] transition-colors">
-                        <MoreVertical
-                          size={15}
-                          className="text-[#4A4640]"
-                        />
+                        <MoreVertical size={15} className="text-[#4A4640]" />
                       </button>
                     </div>
                   </div>

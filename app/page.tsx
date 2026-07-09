@@ -9,6 +9,11 @@ import FurnitureTeaser from '@/components/home/FurnitureTeaser'
 import HowItWorks from '@/components/home/HowItWorks'
 import HomeMapSection from '@/components/home/HomeMapSection'
 
+export const metadata = {
+  title: 'Vastoq — Rentals & Local Workers in Guwahati',
+  description: 'Find verified flats, PGs, rooms and houses for rent in Guwahati. Hire trusted local workers — electricians, plumbers, carpenters and more. No broker fees.',
+}
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#FAFAF8]">

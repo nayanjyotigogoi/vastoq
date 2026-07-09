@@ -7,6 +7,7 @@ import {
   TrendingUp, IndianRupee, Search, MoreVertical, ShieldCheck, Loader2
 } from 'lucide-react'
 import type { Listing, WorkerProfile, User } from '@/lib/types'
+import { resolveImageUrl } from '@/lib/utils'
 
 type AdminTab = 'overview' | 'listings' | 'workers' | 'users'
 
@@ -305,7 +306,7 @@ export default function AdminPanel() {
                 filteredListings.map((l, i) => (
                   <div key={l.id} className={`flex items-center gap-4 px-5 py-4 ${i < filteredListings.length - 1 ? 'border-b border-[#F5F0E8]' : ''}`}>
                     {l.photos[0] ? (
-                      <img src={l.photos[0]} alt={l.title} className="w-14 h-12 object-cover rounded-[8px] flex-shrink-0" />
+                      <img src={resolveImageUrl(l.photos[0])} alt={l.title} className="w-14 h-12 object-cover rounded-[8px] flex-shrink-0" />
                     ) : (
                       <div className="w-14 h-12 bg-[#E8ECF8] rounded-[8px] flex-shrink-0" />
                     )}

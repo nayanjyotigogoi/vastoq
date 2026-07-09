@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import TopNav from '@/components/nav/TopNav'
 import MobileNav from '@/components/nav/MobileNav'
 import Footer from '@/components/nav/Footer'
-import { Upload, Check, Loader2, ChevronLeft } from 'lucide-react'
+import { Upload, Check, Loader2, ChevronLeft, Navigation } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { createListing } from '@/lib/services/listings.service'
@@ -84,6 +84,21 @@ export default function NewListingPage() {
   const [photoUrls, setPhotoUrls] = useState<string[]>([])
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [photoError, setPhotoError] = useState('')
+
+  // Pre-fill owner phone + email from logged-in user profile
+  useEffect(() => {
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(r => r.json())
+      .then(json => {
+        const u = json.data ?? {}
+        setForm(prev => ({
+          ...prev,
+          ownerPhone: u.phone ?? prev.ownerPhone,
+          ownerEmail: u.email ?? prev.ownerEmail,
+        }))
+      })
+      .catch(() => {})
+  }, [])
 
   async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
@@ -203,7 +218,7 @@ export default function NewListingPage() {
         setError('Unable to use your current location. You can enter the address manually instead.')
         setLocating(false)
       },
-      { enableHighAccuracy: true, timeout: 15000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     )
   }
 
@@ -517,10 +532,11 @@ export default function NewListingPage() {
                     </div>
                     <div>
                       <label className={labelClass} htmlFor="ownerPhone">Owner phone</label>
-                      <input id="ownerPhone" type="tel" placeholder="10-digit number" value={form.ownerPhone} onChange={(e) => update('ownerPhone', e.target.value)} className={inputClass} />
+                      <input id="ownerPhone" type="tel" value={form.ownerPhone} readOnly className={inputClass + ' bg-[#F5F3EF] cursor-not-allowed text-[#8A8480]'} />
+                      <p className="text-[11px] text-[#8A8480] mt-1">Linked to your account — edit in profile settings.</p>
                     </div>
                     <div>
-                      <label className={labelClass} htmlFor="ownerEmail">Owner email</label>
+                      <label className={labelClass} htmlFor="ownerEmail">Contact email</label>
                       <input id="ownerEmail" type="email" placeholder="owner@example.com" value={form.ownerEmail} onChange={(e) => update('ownerEmail', e.target.value)} className={inputClass} />
                     </div>
                     <div>

@@ -4,6 +4,7 @@ import MobileNav from '@/components/nav/MobileNav'
 import Footer from '@/components/nav/Footer'
 import WorkerProfile from '@/components/worker/WorkerProfile'
 import type { Worker } from '@/components/worker/WorkerCard'
+import { resolveImageUrl } from '@/lib/utils'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -18,7 +19,7 @@ async function fetchWorker(id: string): Promise<Worker | null> {
     return {
       id              : String(w.id),
       name            : w.name ?? '',
-      avatar          : w.photo_url ?? undefined,
+      avatar          : resolveImageUrl(w.photo_url) || undefined,
       category        : w.category ?? '',
       skills          : Array.isArray(w.skills) ? w.skills : [],
       localities      : Array.isArray(w.service_areas) && w.service_areas.length
