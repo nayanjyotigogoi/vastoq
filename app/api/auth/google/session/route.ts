@@ -12,7 +12,7 @@ import { setSessionCookie } from "@/lib/auth";
  */
 export async function POST(req: NextRequest) {
   try {
-    const { token, role } = await req.json();
+    const { token, role, phone } = await req.json();
 
     if (!token) {
       return error("No token provided", 400);
@@ -66,24 +66,37 @@ export async function POST(req: NextRequest) {
       id:                data.id,
       name:              data.name,
       email:             data.email,
-      phone:             data.phone,
-      role:              role ?? data.role, // use selected role if new user chose one
+      phone:             phone ?? data.phone,
+      role:              role ?? data.role,
       credit_balance:    data.credit_balance,
       is_verified:       data.is_verified,
       profile_photo_url: data.profile_photo_url,
     };
 
-    // ── 4. If a new role was selected, update it in the DB (best-effort) ─
-    if (role && role !== data.role) {
+    // ── 4. Synchronously update role/phone in the DB ─────────────────────
+    if (role || phone) {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       if (apiUrl) {
-        fetch(`${apiUrl}/auth/google/exchange`, {
-          method:  "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body:    JSON.stringify({ token, role }),
-        }).catch(() => {
-          // Non-critical — cookie already has the correct role
-        });
+        try {
+          const res = await fetch(`${apiUrl}/auth/google/exchange`, {
+            method:  "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body:    JSON.stringify({ token, role: role ?? data.role, phone }),
+          });
+          const json = await res.json();
+          if (!res.ok) {
+            // Turn Laravel validation errors object into a single readable string
+            if (json.errors && typeof json.errors === 'object') {
+              const msgs = Object.values(json.errors).flat() as string[];
+              if (msgs.length > 0) return error(msgs.join(' '), res.status);
+            }
+            return error(json.error?.message ?? json.message ?? "Failed to save profile details", res.status);
+          }
+          user.role = json.data.user.role;
+          user.phone = json.data.user.phone;
+        } catch {
+          return error("Failed to update profile details", 500);
+        }
       }
     }
 
