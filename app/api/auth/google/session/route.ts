@@ -2,12 +2,6 @@ import { NextRequest } from "next/server";
 import { ok, error } from "@/lib/api/response";
 import { setSessionCookie } from "@/lib/auth";
 
-/**
- * POST /api/auth/google/session
- *
- * Receives the Sanctum token produced by the Laravel Google OAuth callback,
- * exchanges it with Laravel to get user data, then sets the session cookie.
- */
 export async function POST(req: NextRequest) {
   try {
     const { token, role, phone } = await req.json();
@@ -22,32 +16,8 @@ export async function POST(req: NextRequest) {
       return error("Server configuration error", 500);
     }
 
-    // ── 1. If new user supplied role/phone, update their profile first ────
-    if (role || phone) {
-      const updateRes = await fetch(`${apiUrl}/auth/google/exchange`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ role, phone }),
-      });
-      const updateJson = await updateRes.json();
-      if (!updateRes.ok) {
-        if (updateJson.errors && typeof updateJson.errors === "object") {
-          const msgs = Object.values(updateJson.errors).flat() as string[];
-          if (msgs.length > 0) return error(msgs.join(" "), updateRes.status);
-        }
-        return error(
-          updateJson.error?.message ?? updateJson.message ?? "Failed to save profile details",
-          updateRes.status
-        );
-      }
-    }
-
-    // ── 2. Fetch current user data from Laravel using the Sanctum token ───
-    const meRes = await fetch(`${apiUrl}/auth/me`, {
+    // ── 1. Fetch current user data using the Sanctum Bearer token ─────────
+    const meRes = await fetch(`${apiUrl}/auth/user`, {
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
@@ -55,29 +25,63 @@ export async function POST(req: NextRequest) {
     });
 
     if (!meRes.ok) {
+      console.error("[google/session] /auth/user failed", meRes.status);
       return error("Invalid or expired token", 401);
     }
 
     const meJson = await meRes.json();
-    const userData = meJson.data ?? meJson;
+    const userData = meJson.data?.user ?? meJson.data ?? meJson;
 
-    const user = {
-      userId:            String(userData.id),
-      name:              userData.name ?? "",
-      email:             userData.email ?? "",
-      phone:             phone ?? userData.phone ?? "",
-      role:              role ?? userData.role ?? "tenant",
-      credit_balance:    userData.credit_balance ?? 0,
-      is_verified:       userData.is_verified ?? true,
-      profile_photo_url: userData.profile_photo_url ?? null,
-    };
+    // ── 2. Update role if provided (new user picked a role) ───────────────
+    if (role) {
+      const roleRes = await fetch(`${apiUrl}/auth/update-role`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role }),
+      });
+      if (!roleRes.ok) {
+        const roleJson = await roleRes.json();
+        return error(roleJson.error?.message ?? roleJson.message ?? "Failed to update role", roleRes.status);
+      }
+    }
 
-    // ── 3. Set session cookie (same as phone/password login) ─────────────
+    // ── 3. Update phone if provided (owner/worker must supply phone) ───────
+    if (phone) {
+      const profileRes = await fetch(`${apiUrl}/auth/update-profile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userData.id,
+          name: userData.name,
+          phone,
+        }),
+      });
+      if (!profileRes.ok) {
+        const profileJson = await profileRes.json();
+        if (profileJson.errors && typeof profileJson.errors === "object") {
+          const msgs = Object.values(profileJson.errors).flat() as string[];
+          if (msgs.length > 0) return error(msgs.join(" "), profileRes.status);
+        }
+        return error(profileJson.error?.message ?? profileJson.message ?? "Failed to update phone", profileRes.status);
+      }
+    }
+
+    // ── 4. Set session cookie ─────────────────────────────────────────────
+    const finalRole  = role  ?? userData.role  ?? "tenant";
+    const finalPhone = phone ?? userData.phone ?? "";
+
     await setSessionCookie({
-      userId: user.userId,
-      phone:  user.phone,
-      name:   user.name,
-      role:   user.role,
+      userId: String(userData.id),
+      phone:  finalPhone,
+      name:   userData.name ?? "",
+      role:   finalRole,
     });
 
     const redirectMap: Record<string, string> = {
@@ -87,8 +91,17 @@ export async function POST(req: NextRequest) {
     };
 
     return ok({
-      user,
-      redirect_to: redirectMap[user.role] ?? "/dashboard",
+      user: {
+        userId:            String(userData.id),
+        name:              userData.name,
+        email:             userData.email,
+        phone:             finalPhone,
+        role:              finalRole,
+        credit_balance:    userData.credit_balance ?? 0,
+        is_verified:       userData.is_verified ?? true,
+        profile_photo_url: userData.profile_photo_url ?? null,
+      },
+      redirect_to: redirectMap[finalRole] ?? "/dashboard",
     });
   } catch (err) {
     console.error("[google/session] error:", err);
