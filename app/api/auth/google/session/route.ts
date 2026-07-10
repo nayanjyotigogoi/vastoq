@@ -1,7 +1,15 @@
 import { NextRequest } from "next/server";
+import { createHmac } from "crypto";
 import { ok, error } from "@/lib/api/response";
 import { setSessionCookie } from "@/lib/auth";
 
+/**
+ * POST /api/auth/google/session
+ *
+ * Verifies the HMAC-signed token produced by the Laravel Google OAuth callback,
+ * then sets the session cookie.
+ * Token format: base64(json_user_data) + "." + hmac_sha256_hex
+ */
 export async function POST(req: NextRequest) {
   try {
     const { token, role, phone } = await req.json();
@@ -10,77 +18,79 @@ export async function POST(req: NextRequest) {
       return error("No token provided", 400);
     }
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl) {
-      console.error("[google/session] NEXT_PUBLIC_API_URL is not set");
+    // ── 1. Split payload and signature ──────────────────────────────────
+    const dotIndex = token.lastIndexOf(".");
+    if (dotIndex === -1) {
+      return error("Malformed token", 400);
+    }
+    const payloadB64 = token.slice(0, dotIndex);
+    const sig        = token.slice(dotIndex + 1);
+
+    // ── 2. Verify HMAC using the Laravel APP_KEY ─────────────────────────
+    const appKey = process.env.BACKEND_APP_KEY;
+    if (!appKey) {
+      console.error("[google/session] BACKEND_APP_KEY is not set");
       return error("Server configuration error", 500);
     }
+    const expectedSig = createHmac("sha256", appKey)
+      .update(payloadB64)
+      .digest("hex");
 
-    // ── 1. Fetch current user data using the Sanctum Bearer token ─────────
-    const meRes = await fetch(`${apiUrl}/auth/user`, {
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!meRes.ok) {
-      console.error("[google/session] /auth/user failed", meRes.status);
-      return error("Invalid or expired token", 401);
+    if (expectedSig !== sig) {
+      return error("Invalid token signature", 401);
     }
 
-    const meJson = await meRes.json();
-    const userData = meJson.data?.user ?? meJson.data ?? meJson;
-
-    // ── 2. Update role if provided (new user picked a role) ───────────────
-    if (role) {
-      const roleRes = await fetch(`${apiUrl}/auth/update-role`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ role }),
-      });
-      if (!roleRes.ok) {
-        const roleJson = await roleRes.json();
-        return error(roleJson.error?.message ?? roleJson.message ?? "Failed to update role", roleRes.status);
-      }
+    // ── 3. Decode and validate payload ───────────────────────────────────
+    let data: {
+      id: number;
+      name: string;
+      email: string;
+      phone: string | null;
+      role: string;
+      credit_balance: number;
+      is_verified: boolean;
+      profile_photo_url: string | null;
+      exp: number;
+    };
+    try {
+      data = JSON.parse(Buffer.from(payloadB64, "base64").toString("utf-8"));
+    } catch {
+      return error("Malformed token payload", 400);
     }
 
-    // ── 3. Update phone if provided (owner/worker must supply phone) ───────
-    if (phone) {
-      const profileRes = await fetch(`${apiUrl}/auth/update-profile`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          user_id: userData.id,
-          name: userData.name,
-          phone,
-        }),
-      });
-      if (!profileRes.ok) {
-        const profileJson = await profileRes.json();
-        if (profileJson.errors && typeof profileJson.errors === "object") {
-          const msgs = Object.values(profileJson.errors).flat() as string[];
-          if (msgs.length > 0) return error(msgs.join(" "), profileRes.status);
+    if (!data.exp || Math.floor(Date.now() / 1000) > data.exp) {
+      return error("Token has expired. Please try signing in again.", 401);
+    }
+
+    // ── 4. Update role/phone in DB if provided (new user) ────────────────
+    if (role || phone) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (apiUrl) {
+        if (role) {
+          await fetch(`${apiUrl}/auth/update-role`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({ user_id: data.id, role }),
+          });
         }
-        return error(profileJson.error?.message ?? profileJson.message ?? "Failed to update phone", profileRes.status);
+        if (phone) {
+          await fetch(`${apiUrl}/auth/update-profile`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({ user_id: data.id, name: data.name, phone }),
+          });
+        }
       }
     }
 
-    // ── 4. Set session cookie ─────────────────────────────────────────────
-    const finalRole  = role  ?? userData.role  ?? "tenant";
-    const finalPhone = phone ?? userData.phone ?? "";
+    // ── 5. Set session cookie ─────────────────────────────────────────────
+    const finalRole  = role  ?? data.role;
+    const finalPhone = phone ?? data.phone ?? "";
 
     await setSessionCookie({
-      userId: String(userData.id),
+      userId: String(data.id),
       phone:  finalPhone,
-      name:   userData.name ?? "",
+      name:   data.name,
       role:   finalRole,
     });
 
@@ -92,14 +102,14 @@ export async function POST(req: NextRequest) {
 
     return ok({
       user: {
-        userId:            String(userData.id),
-        name:              userData.name,
-        email:             userData.email,
+        userId:            String(data.id),
+        name:              data.name,
+        email:             data.email,
         phone:             finalPhone,
         role:              finalRole,
-        credit_balance:    userData.credit_balance ?? 0,
-        is_verified:       userData.is_verified ?? true,
-        profile_photo_url: userData.profile_photo_url ?? null,
+        credit_balance:    data.credit_balance,
+        is_verified:       data.is_verified,
+        profile_photo_url: data.profile_photo_url,
       },
       redirect_to: redirectMap[finalRole] ?? "/dashboard",
     });
