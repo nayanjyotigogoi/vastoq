@@ -387,8 +387,8 @@ function LoginForm() {
                     ))}
                   </div>
 
-                  {/* Phone field — shown only for owner/worker */}
-                  {phoneRequired && (
+                  {/* Phone field — shown for all roles */}
+                  {regRole && (
                     <div className="mt-3 animate-[fadeIn_0.2s_ease]">
                       <label className="block text-[12px] font-semibold text-[#1A1814] mb-1.5">
                         Mobile number <span className="text-red-500">*</span>
@@ -402,11 +402,11 @@ function LoginForm() {
                           value={regPhone}
                           onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                           className="flex-1 bg-transparent text-[14px] text-[#1A1814] placeholder:text-[#8A8480] focus:outline-none"
-                          required={phoneRequired}
+                          required
                           autoFocus
                         />
                       </div>
-                      <p className="mt-1 text-[11px] text-[#8A8480]">Required for listing and contacting tenants.</p>
+                      <p className="mt-1 text-[11px] text-[#8A8480]">Used to contact you about your account.</p>
                     </div>
                   )}
                 </div>
@@ -414,7 +414,7 @@ function LoginForm() {
                 {apiError && <p className="text-[12px] text-red-600">{apiError}</p>}
 
                 <button type="submit"
-                  disabled={!regName || !regEmail || regPw.length < 6 || !regRole || (phoneRequired && regPhone.length < 10) || loading}
+                  disabled={!regName || !regEmail || regPw.length < 6 || !regRole || regPhone.length < 10 || loading}
                   className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#1B2B6B] text-white text-[15px] font-bold rounded-[10px] hover:bg-[#2D3E8C] transition-colors disabled:opacity-60 min-h-[52px]"
                 >
                   {loading ? <><Loader2 size={18} className="animate-spin" /> Sending code...</> : 'Continue →'}
