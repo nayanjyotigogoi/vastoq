@@ -148,15 +148,15 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
     setEnquiryError('')
     setEnquiryLoading(true)
     try {
-      const res  = await fetch(`/api/listings/${listing.id}/enquire`, {
+      const res = await fetch(`/api/listings/${listing.id}/enquire`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ tenant_name: enquiryName.trim(), tenant_phone: enquiryPhone.trim(), consent: enquiryConsent }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error?.message ?? 'Failed. Please try again.')
-      setUnlockedData(json.data)
-      setUnlocked(true)
+      // Lead saved — now open payment gate to unlock contact + location
+      setShowUnlock(true)
     } catch (e: any) {
       setEnquiryError(e?.message ?? 'Something went wrong.')
     } finally {
@@ -611,7 +611,7 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
                     className="mt-0.5 h-4 w-4 rounded border-[#D0C9BC] text-[#1B2B6B] flex-shrink-0"
                   />
                   <span className="text-[11px] text-[#4A4640] leading-relaxed">
-                    I agree to be contacted by the owner via WhatsApp, SMS, phone, or email
+                    I agree to be contacted by the owner and Vastoq via WhatsApp, SMS, phone, or email
                   </span>
                 </label>
 
