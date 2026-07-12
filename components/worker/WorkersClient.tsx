@@ -9,6 +9,7 @@ import UnlockGate from '@/components/listing/UnlockGate'
 import { resolveImageUrl } from '@/lib/utils'
 import { useUserLocation } from '@/hooks/useUserLocation'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import PlaceAutocomplete from '@/components/ui/PlaceAutocomplete'
 
 const CATEGORIES = [
   'All', 'Electrician', 'Plumber', 'Carpenter', 'Painter',
@@ -81,12 +82,13 @@ export default function WorkersClient() {
   const fallbackTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Core fetch ────────────────────────────────────────────────────────────
-  const fetchWorkers = useCallback(async (cityOverride?: string) => {
+  const fetchWorkers = useCallback(async (cityOverride?: string, searchOverride?: string) => {
     setLoading(true)
     try {
       const city = cityOverride !== undefined ? cityOverride : cityFilter
+      const searchTerm = searchOverride !== undefined ? searchOverride : search
       const params = new URLSearchParams({ per_page: '50' })
-      if (search.trim())      params.set('search',         search.trim())
+      if (searchTerm.trim())  params.set('search',         searchTerm.trim())
       if (category !== 'All') params.set('category',       category)
       if (city)               params.set('city',           city)
       if (availOnly)          params.set('available_today','1')
@@ -166,6 +168,9 @@ export default function WorkersClient() {
   }
 
   const isDetecting = locationState.status === 'idle' || locationState.status === 'requesting'
+  const userLatLng = locationState.status === 'ready'
+    ? { lat: locationState.location.lat, lng: locationState.location.lng }
+    : undefined
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
@@ -202,22 +207,18 @@ export default function WorkersClient() {
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-2 bg-white border border-[#E5E0D5] rounded-[10px] px-3 py-2.5 mb-4 shadow-vastoq-sm">
-        <Search size={15} className="text-[#8A8480] flex-shrink-0" />
-        <input
-          type="text"
-          placeholder="Search by name, skill or area…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 bg-transparent text-[14px] text-[#1A1814] placeholder:text-[#8A8480] focus:outline-none"
-          aria-label="Search workers"
-        />
-        {search && (
-          <button onClick={() => setSearch('')} aria-label="Clear search">
-            <X size={14} className="text-[#8A8480]" />
-          </button>
-        )}
-      </div>
+      <PlaceAutocomplete
+        value={search}
+        onChange={setSearch}
+        onSelect={(val) => {
+          setSearch(val)
+          fetchWorkers(undefined, val)
+        }}
+        placeholder="Search by name, skill or area…"
+        containerClassName="bg-white border border-[#E5E0D5] rounded-[10px] px-3 py-2.5 mb-4 shadow-vastoq-sm"
+        icon={<Search size={15} className="text-[#8A8480] flex-shrink-0" />}
+        userLatLng={userLatLng}
+      />
 
       {/* Filters */}
       <div className="flex flex-col gap-3 mb-6">
@@ -285,8 +286,16 @@ export default function WorkersClient() {
         </div>
       ) : (
         <div className="space-y-3">
-          {workers.map((worker) => (
-            <WorkerCard key={worker.id} worker={worker} onUnlock={handleUnlock} />
+          {workers.map((worker, index) => (
+            <div
+              key={worker.id}
+              style={{
+                animationDelay: `${Math.min(index * 60, 400)}ms`
+              }}
+              className="animate-fade-in-up"
+            >
+              <WorkerCard worker={worker} onUnlock={handleUnlock} />
+            </div>
           ))}
         </div>
       )}

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, MapPin, IndianRupee, ChevronDown } from 'lucide-react'
+import PlaceAutocomplete from '@/components/ui/PlaceAutocomplete'
 
 const PROPERTY_TYPES = [
   'Any',
@@ -16,8 +17,21 @@ const PROPERTY_TYPES = [
 export default function HeroSection() {
   const router = useRouter()
   const [locality, setLocality] = useState('')
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null)
   const [budget, setBudget] = useState('')
   const [type, setType] = useState('Any')
+  const [isTypeOpen, setIsTypeOpen] = useState(false)
+  const typeRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (typeRef.current && !typeRef.current.contains(event.target as Node)) {
+        setIsTypeOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,6 +40,10 @@ export default function HeroSection() {
 
     if (locality.trim()) {
       params.set('search', locality)
+      if (coordinates) {
+        params.set('lat', String(coordinates.lat))
+        params.set('lng', String(coordinates.lng))
+      }
     }
 
     if (budget) {
@@ -51,22 +69,24 @@ export default function HeroSection() {
 
   return (
     <section
-      className="relative bg-[#1B2B6B] overflow-hidden"
+      className="relative bg-[#1B2B6B]"
       aria-labelledby="hero-heading"
     >
-      {/* City watermark */}
-      <span className="city-watermark" aria-hidden="true">VASTOQ</span>
+      {/* Background decorations clipped container */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        {/* City watermark */}
+        <span className="city-watermark">VASTOQ</span>
 
-      {/* Subtle grid overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)',
-          backgroundSize: '48px 48px',
-        }}
-        aria-hidden="true"
-      />
+        {/* Subtle grid overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage:
+              'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)',
+            backgroundSize: '48px 48px',
+          }}
+        />
+      </div>
 
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-16 pb-20 text-center">
         {/* Live pill */}
@@ -96,17 +116,20 @@ export default function HeroSection() {
           aria-label="Search rentals"
         >
           {/* Locality */}
-          <div className="flex items-center gap-2 flex-1 px-3 py-2.5 rounded-[12px] hover:bg-[#F5F0E8] transition-colors">
-            <MapPin size={16} className="text-[#1B2B6B] flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Search city, locality, landmark..."
-              value={locality}
-              onChange={(e) => setLocality(e.target.value)}
-              className="w-full bg-transparent text-[14px] text-[#1A1814] placeholder:text-[#8A8480] focus:outline-none"
-              aria-label="Search location"
-            />
-          </div>
+          <PlaceAutocomplete
+            value={locality}
+            onChange={(val) => {
+              setLocality(val)
+              setCoordinates(null)
+            }}
+            onSelect={(val, latLng) => {
+              setLocality(val)
+              setCoordinates(latLng || null)
+            }}
+            placeholder="Search city, locality, landmark..."
+            containerClassName="hover:bg-[#F5F0E8] rounded-[12px] px-3 py-2.5 transition-colors"
+            icon={<MapPin size={16} className="text-[#1B2B6B] flex-shrink-0" />}
+          />
 
           <div className="hidden sm:block w-px bg-[#E5E0D5]" aria-hidden="true" />
 
@@ -127,19 +150,42 @@ export default function HeroSection() {
           <div className="hidden sm:block w-px bg-[#E5E0D5]" aria-hidden="true" />
 
           {/* Property type */}
-          <div className="flex items-center gap-1 px-3 py-2.5 rounded-[12px] hover:bg-[#F5F0E8] transition-colors">
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="bg-transparent text-[14px] text-[#1A1814] focus:outline-none cursor-pointer appearance-none pr-5"
-              aria-label="Property type"
-              style={{ minWidth: 80 }}
+          <div ref={typeRef} className="relative flex items-center px-3 py-2.5 rounded-[12px] hover:bg-[#F5F0E8] transition-colors">
+            <button
+              type="button"
+              onClick={() => setIsTypeOpen(!isTypeOpen)}
+              className="flex items-center gap-1.5 text-[14px] font-medium text-[#1A1814] focus:outline-none cursor-pointer w-full h-full text-left"
+              style={{ minWidth: 90 }}
             >
-              {PROPERTY_TYPES.map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </select>
-            <ChevronDown size={14} className="text-[#8A8480] -ml-4 pointer-events-none" aria-hidden="true" />
+              <span className="flex-1 truncate">{type === 'Any' ? 'Property type' : type}</span>
+              <ChevronDown size={14} className="text-[#8A8480] flex-shrink-0" aria-hidden="true" />
+            </button>
+
+            {isTypeOpen && (
+              <div className="absolute right-0 top-full mt-2 bg-white border border-[#E5E0D5] rounded-[12px] shadow-vastoq-lg z-50 py-1.5 min-w-[140px] text-left">
+                <ul className="max-h-[240px] overflow-y-auto">
+                  {PROPERTY_TYPES.map((t) => {
+                    const isSelected = t === type
+                    return (
+                      <li
+                        key={t}
+                        onClick={() => {
+                          setType(t)
+                          setIsTypeOpen(false)
+                        }}
+                        className={`px-4 py-2 cursor-pointer transition-colors text-[13px] font-semibold ${
+                          isSelected
+                            ? 'bg-[#F5F0E8] text-[#1a1814]'
+                            : 'text-[#4A4640] hover:bg-[#F5F0E8] hover:text-[#1A1814]'
+                        }`}
+                      >
+                        {t}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Search button */}

@@ -20,6 +20,8 @@ export function loadGoogleMaps(): Promise<typeof google> {
     await importLibrary('maps')
     await importLibrary('marker')
     await importLibrary('geometry')
+    await importLibrary('places')
+    await importLibrary('geocoding')
     return window.google
   })()
 
