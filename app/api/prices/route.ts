@@ -14,7 +14,7 @@ export async function GET() {
     // Fallback to defaults if backend is unreachable
     return NextResponse.json({
       success: true,
-      data: { listing_unlock: 20, worker_unlock: 20 },
+      data: { listing_unlock: 20, worker_unlock: 10 },
     });
   }
 }

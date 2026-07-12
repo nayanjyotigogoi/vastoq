@@ -123,12 +123,6 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
     longitude?: string
   } | null>(null)
 
-  // Lead-capture form state
-  const [enquiryName,    setEnquiryName]    = useState('')
-  const [enquiryPhone,   setEnquiryPhone]   = useState('')
-  const [enquiryConsent, setEnquiryConsent] = useState(true)
-  const [enquiryLoading, setEnquiryLoading] = useState(false)
-  const [enquiryError,   setEnquiryError]   = useState('')
 
   const handleUnlockSuccess = (data: any) => {
     setUnlockedData(data)
@@ -136,33 +130,7 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
     setShowUnlock(false)
   }
 
-  const handleEnquiry = async () => {
-    if (!enquiryName.trim() || !enquiryPhone.trim()) {
-      setEnquiryError('Please enter your name and phone number.')
-      return
-    }
-    if (!/^\d{10}$/.test(enquiryPhone.replace(/\s/g, ''))) {
-      setEnquiryError('Enter a valid 10-digit phone number.')
-      return
-    }
-    setEnquiryError('')
-    setEnquiryLoading(true)
-    try {
-      const res = await fetch(`/api/listings/${listing.id}/enquire`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ tenant_name: enquiryName.trim(), tenant_phone: enquiryPhone.trim(), consent: enquiryConsent }),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json?.error?.message ?? 'Failed. Please try again.')
-      // Lead saved — now open payment gate to unlock contact + location
-      setShowUnlock(true)
-    } catch (e: any) {
-      setEnquiryError(e?.message ?? 'Something went wrong.')
-    } finally {
-      setEnquiryLoading(false)
-    }
-  }
+  // Removed handleEnquiry — Get Contact Details now directly opens the UnlockGate modal
 
   // Check existing unlock on mount (so returning users see contact immediately)
   useEffect(() => {
@@ -579,55 +547,15 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-[13px] font-semibold text-[#1A1814]">Please share your contact</p>
-                <div className="space-y-2.5">
-                  <div className="relative">
-                    <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A8480]" />
-                    <input
-                      type="text"
-                      placeholder="Your name"
-                      value={enquiryName}
-                      onChange={e => setEnquiryName(e.target.value)}
-                      className="w-full pl-8 pr-3.5 py-2.5 border border-[#E5E0D5] rounded-[10px] text-[14px] text-[#1A1814] placeholder:text-[#8A8480] focus:outline-none focus:ring-2 focus:ring-[#1B2B6B]/30 focus:border-[#1B2B6B] transition-all"
-                    />
-                  </div>
-                  <div className="relative flex items-center">
-                    <span className="absolute left-3 text-[13px] font-semibold text-[#4A4640] select-none">+91</span>
-                    <input
-                      type="tel"
-                      placeholder="Phone number"
-                      value={enquiryPhone}
-                      onChange={e => setEnquiryPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      className="w-full pl-12 pr-3.5 py-2.5 border border-[#E5E0D5] rounded-[10px] text-[14px] text-[#1A1814] placeholder:text-[#8A8480] focus:outline-none focus:ring-2 focus:ring-[#1B2B6B]/30 focus:border-[#1B2B6B] transition-all"
-                    />
-                  </div>
-                </div>
-
-                <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={enquiryConsent}
-                    onChange={e => setEnquiryConsent(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-[#D0C9BC] text-[#1B2B6B] flex-shrink-0"
-                  />
-                  <span className="text-[11px] text-[#4A4640] leading-relaxed">
-                    I agree to be contacted by the owner and Vastoq via WhatsApp, SMS, phone, or email
-                  </span>
-                </label>
-
-                {enquiryError && (
-                  <p className="text-[12px] text-red-600">{enquiryError}</p>
-                )}
+                <p className="text-[13px] text-[#4A4640] leading-relaxed">
+                  Unlock to view the owner's phone number and exact address instantly.
+                </p>
 
                 <button
-                  onClick={user ? handleEnquiry : () => router.push(`/login?next=${encodeURIComponent(`/rentals/${listing.id}`)}`)}
-                  disabled={enquiryLoading}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-[#1B2B6B] text-white text-[14px] font-bold rounded-[10px] hover:bg-[#2D3E8C] transition-colors min-h-[48px] disabled:opacity-70"
+                  onClick={openUnlock}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-[#1B2B6B] text-white text-[14px] font-bold rounded-[10px] hover:bg-[#2D3E8C] transition-colors min-h-[48px]"
                 >
-                  {enquiryLoading
-                    ? <><Loader2 size={16} className="animate-spin" /> Getting details…</>
-                    : <><Phone size={16} /> Get Contact Details</>
-                  }
+                  <Phone size={16} /> Get Contact Details
                 </button>
 
                 <button

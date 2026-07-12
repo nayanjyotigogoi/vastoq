@@ -10,7 +10,7 @@ import {
 
 const TENANT_STEPS = [
   { icon: Search, title: 'Search listings', desc: 'Browse verified flats, PGs, rooms and houses in Guwahati. Filter by locality, budget, BHK and furnishing.' },
-  { icon: Lock, title: 'Pay a small fee to unlock', desc: 'Pay just ₹20 to reveal the owner\'s contact number and exact address. No broker. No hidden charges.' },
+  { icon: Lock, title: 'Unlock with Vastoq Points', desc: 'Use Vastoq Points or free credits to reveal contact details. A rental property unlock costs 20 points.' },
   { icon: Phone, title: 'Contact directly', desc: 'Call or message the owner directly using the unlocked number. Schedule a visit on your terms.' },
   { icon: CheckCircle2, title: 'Move in', desc: 'Finalize the deal with the owner directly. No middlemen, no negotiation stress.' },
 ]
@@ -18,7 +18,7 @@ const TENANT_STEPS = [
 const OWNER_STEPS = [
   { icon: PlusSquare, title: 'List your property', desc: 'Post your flat, PG, room or house in under 5 minutes with photos and details.' },
   { icon: Eye, title: 'Reach thousands', desc: 'Your listing goes live immediately to thousands of verified tenants looking in your area.' },
-  { icon: IndianRupee, title: 'Earn per contact unlock', desc: 'Every time a tenant pays ₹20 to unlock your number, you earn a portion. We handle payments.' },
+  { icon: IndianRupee, title: 'Earn rewards', desc: 'Every time a tenant unlocks your number, you gain search visibility boosts and platform trust rewards.' },
   { icon: UserCheck, title: 'Choose your tenant', desc: 'Screen tenants yourself. No broker pressure. Move-in on your schedule.' },
 ]
 
@@ -26,7 +26,7 @@ const WORKER_STEPS = [
   { icon: UserCheck, title: 'Verify your Aadhaar', desc: 'Complete a one-time Aadhaar verification to get the Vastoq Verified badge — building trust instantly.' },
   { icon: ClipboardList, title: 'Set up your profile', desc: 'Add your skills, work localities, hourly rate, and photos of past work.' },
   { icon: Star, title: 'Earn 5-star reviews', desc: 'Complete jobs and collect reviews. The more you earn, the higher you rank in search results.' },
-  { icon: Wrench, title: 'Build your local reputation', desc: 'Vastoq becomes your digital portfolio. New clients find you without any middleman fee.' },
+  { icon: Wrench, title: 'Build your local reputation', desc: 'Users unlock your contact using 10 Vastoq Points. Connect directly without commissions.' },
 ]
 
 type StepItem = {
@@ -71,10 +71,10 @@ function StepList({ steps, color }: { steps: StepItem[]; color: 'indigo' | 'gree
 
 const FAQS = [
   { q: 'Is Vastoq only for Guwahati?', a: 'Currently yes — we are focused on building the best rental and worker discovery platform for Guwahati. More Assam cities are coming soon.' },
-  { q: 'Why do I pay ₹20 to unlock a contact?', a: 'The ₹20 unlock fee keeps Vastoq free of broker fees. It also filters out fake enquiries, so owners only get serious tenants contacting them.' },
+  { q: 'How does the Vastoq Points system work?', a: 'Instead of per-item payments, Vastoq uses a unified Points wallet. You buy a pack of 100 points for ₹99. Unlocking a rental property details costs 20 points (giving you up to 5 properties per pack). Unlocking a worker\'s profile costs 10 points (giving you up to 10 workers per pack).' },
   { q: 'How are workers verified?', a: 'Workers submit their Aadhaar number. Our team verifies the Aadhaar data against the UIDAI database. Verified workers get a green badge on their profile.' },
   { q: 'Can I list more than one property?', a: 'Yes. Owner accounts can post unlimited listings. Each listing is reviewed within 24 hours before going live.' },
-  { q: 'What happens if a tenant unlocks but the property is already rented?', a: 'Owners are expected to mark listings as rented. If you unlocked a listing that turned out to be unavailable, raise a ticket and we will process a full refund.' },
+  { q: 'What happens if a tenant unlocks but the property is already rented?', a: 'Owners are expected to mark listings as rented. If you unlocked a listing that turned out to be unavailable, raise a support ticket and we will credit back your points.' },
 ]
 
 export default function HowItWorksPage() {
@@ -168,9 +168,9 @@ export default function HowItWorksPage() {
             <h2 className="text-[26px] font-extrabold text-white mb-3">Simple. Transparent. Affordable.</h2>
             <div className="grid sm:grid-cols-3 gap-4 mt-8 text-left">
               {[
-                { who: 'Tenants', price: 'From ₹20', what: 'Per listing unlock. Packs & monthly pass available.' },
-                { who: 'Owners', price: 'Free to list', what: 'Listing is free. Earn revenue share on tenant unlocks.' },
-                { who: 'Workers', price: 'Free profile', what: 'No commission. Keep 100% of what you earn.' },
+                { who: 'Tenants / Users', price: '₹99 pack', what: 'Get 100 Vastoq Points. Unlocks cost 20 points for property owners and 10 points for worker contact details.' },
+                { who: 'Owners', price: 'Free to list', what: 'List property free. Reach verified tenants directly with zero broker commissions.' },
+                { who: 'Workers', price: 'Free profile', what: 'Verify Aadhaar and get discovered. Keep 100% of the wages you negotiate.' },
               ].map((p) => (
                 <div key={p.who} className="bg-white/10 rounded-[14px] p-5">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-2">{p.who}</p>

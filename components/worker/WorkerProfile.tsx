@@ -8,6 +8,7 @@ import UnlockGate from '@/components/listing/UnlockGate'
 import type { Worker } from './WorkerCard'
 import { usePrices } from '@/hooks/usePrices'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import PointsInfoModal from '@/components/ui/PointsInfoModal'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const SLOTS = ['Morning', 'Afternoon', 'Evening']
@@ -201,11 +202,14 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
                   className="w-full flex items-center justify-center gap-2 py-3 bg-[#1B2B6B] text-white text-[14px] font-bold rounded-[10px] hover:bg-[#2D3E8C] transition-colors min-h-[48px]"
                 >
                   <Lock size={16} />
-                  Unlock number — ₹{prices.worker_unlock}
+                  Unlock details — 10 Points
                 </button>
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-center text-[#8A8480]">
-                  <div className="bg-[#F5F0E8] rounded-[8px] p-2">Pack of 7<br /><span className="font-bold text-[#1B2B6B]">₹100</span></div>
-                  <div className="bg-[#F5F0E8] rounded-[8px] p-2">Pack of 10<br /><span className="font-bold text-[#1B2B6B]">₹150</span></div>
+                <div className="bg-[#F5F0E8] rounded-[10px] p-3 text-[11px] text-[#4A4640] leading-relaxed relative">
+                  <div className="flex items-center gap-1.5 font-bold text-[#1B2B6B] mb-1">
+                    <span>Vastoq Points System</span>
+                    <PointsInfoModal />
+                  </div>
+                  Buy 100 points for ₹99. Deduct 10 points to unlock worker details (up to 10 workers).
                 </div>
                 <p className="text-[11px] text-[#8A8480] text-center">
                   Pay once, get direct contact. No middleman.

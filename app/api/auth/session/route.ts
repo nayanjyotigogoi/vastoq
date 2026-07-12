@@ -5,39 +5,65 @@ import type { SessionPayload, Role } from "@/lib/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// GET /api/auth/session — read current session from JWT cookie.
-// If name is missing (old cookie), fetches from backend once and refreshes the cookie.
+interface CacheEntry {
+  user: any;
+  timestamp: number;
+}
+
+const profileCache = new Map<string, CacheEntry>();
+const CACHE_TTL = 3000; // 3 seconds TTL
+
+// GET /api/auth/session — read current session and fetch live details (credits) from backend.
 export async function GET(req: NextRequest) {
   const guard = await requireAuth(req);
   if (guard instanceof NextResponse) return guard;
 
-  let { session } = guard;
+  const { session } = guard;
+  const cacheKey = session.userId;
+  const now = Date.now();
+  const nocache = req.nextUrl.searchParams.get("nocache") === "true";
 
-  // Back-fill name if the stored JWT pre-dates the name field
-  if (!session.name) {
-    try {
-      const res = await fetch(
-        `${API_URL}/auth/me?user_id=${session.userId}`,
-        { headers: { Accept: "application/json" } }
-      );
-      if (res.ok) {
-        const json = await res.json();
-        const name = json.data?.user?.name ?? "";
-        if (name) {
-          session = { ...session, name };
-          await setSessionCookie(session); // refresh cookie so next request is instant
-        }
-      }
-    } catch {
-      // backend unreachable — return what we have
+  if (!nocache && profileCache.has(cacheKey)) {
+    const entry = profileCache.get(cacheKey)!;
+    if (now - entry.timestamp < CACHE_TTL) {
+      return ok(entry.user);
     }
+  }
+
+  try {
+    const res = await fetch(
+      `${API_URL}/auth/me?user_id=${session.userId}`,
+      { headers: { Accept: "application/json" } }
+    );
+    if (res.ok) {
+      const json = await res.json();
+      const user = json.data?.user;
+      if (user) {
+        const payload = {
+          userId: String(user.id),
+          phone:  user.phone,
+          name:   user.name ?? "",
+          email:  user.email ?? "",
+          role:   user.role,
+          free_unlocks_remaining: user.free_unlocks_remaining ?? 0,
+          vastoq_points: user.vastoq_points ?? 0,
+        };
+        profileCache.set(cacheKey, { user: payload, timestamp: now });
+        return ok(payload);
+      }
+    }
+  } catch {
+    // backend unreachable — return fallback from cookie
   }
 
   return ok({
     userId: session.userId,
     phone:  session.phone,
     name:   session.name ?? "",
+    email:  "",
     role:   session.role,
+    free_unlocks_remaining: 0,
+    vastoq_points: 0,
   });
 }
 

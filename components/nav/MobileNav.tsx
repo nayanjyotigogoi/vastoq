@@ -8,6 +8,7 @@ import {
   Wrench,
   MessageSquare,
   User,
+  Unlock,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -45,13 +46,35 @@ export default function MobileNav() {
     },
   ]
 
+  const isTenant = user?.role === 'tenant'
+  const freeCredits = isTenant ? (user?.free_unlocks_remaining ?? 0) : 0
+  const points = user?.vastoq_points ?? 0
+  const hasCreditsOrPoints = user && (freeCredits > 0 || points > 0)
+
   return (
     <nav
       className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#E5E0D5] shadow-vastoq-lg"
-      style={{ height: 64 }}
       aria-label="Mobile navigation"
     >
-      <div className="flex items-stretch h-full">
+      {/* Credits strip — only shown when user has unlocks or points available */}
+      {hasCreditsOrPoints && (
+        <Link
+          href="/dashboard"
+          className="flex items-center justify-center gap-2 px-4 py-1.5 bg-gradient-to-r from-[#1B2B6B]/90 to-[#1D9E75]/80 text-white text-[11px] font-semibold leading-none"
+        >
+          <Unlock size={11} strokeWidth={2.5} />
+          <span>
+            {freeCredits > 0 && points > 0
+              ? `${freeCredits} free unlock${freeCredits !== 1 ? 's' : ''} + ${points} Vastoq Points`
+              : freeCredits > 0
+              ? `${freeCredits} free unlock${freeCredits !== 1 ? 's' : ''} left`
+              : `${points} Vastoq Points`}
+          </span>
+          <span className="opacity-60 text-[9px]">· Tap for dashboard</span>
+        </Link>
+      )}
+
+      <div className="flex items-stretch" style={{ height: 64 }}>
         {tabs.map((tab) => {
           const isActive =
             pathname === tab.href ||
