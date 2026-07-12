@@ -9,9 +9,9 @@ type Tab = 'login' | 'register'
 type RegisterStep = 'form' | 'otp'
 
 const ROLES = [
-  { id: 'tenant', label: 'Tenant',         desc: 'Looking for a rental or services',  emoji: '🏠' },
-  { id: 'owner',  label: 'Property Owner', desc: 'I want to list my property',         emoji: '🏗' },
-  { id: 'worker', label: 'Local Worker',   desc: 'I offer skilled services',           emoji: '🔧' },
+  { id: 'tenant', label: 'Tenant', desc: 'Looking for a rental or services', emoji: '🏠' },
+  { id: 'owner', label: 'Property Owner', desc: 'I want to list my property', emoji: '🏗' },
+  { id: 'worker', label: 'Local Worker', desc: 'I offer skilled services', emoji: '🔧' },
 ]
 
 export default function LoginPage() {
@@ -23,32 +23,32 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
-  const router       = useRouter()
+  const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [tab,      setTab]      = useState<Tab>('login')
-  const [loading,  setLoading]  = useState(false)
+  const [tab, setTab] = useState<Tab>('login')
+  const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
-  const [showPw,   setShowPw]   = useState(false)
+  const [showPw, setShowPw] = useState(false)
 
   // Login fields
   const [loginPhone, setLoginPhone] = useState('')
-  const [loginPw,    setLoginPw]    = useState('')
+  const [loginPw, setLoginPw] = useState('')
 
   // Register fields
-  const [regName,  setRegName]  = useState('')
+  const [regName, setRegName] = useState('')
   const [regPhone, setRegPhone] = useState('')
   const [regEmail, setRegEmail] = useState('')
-  const [regPw,    setRegPw]    = useState('')
-  const [regRole,  setRegRole]  = useState('')
+  const [regPw, setRegPw] = useState('')
+  const [regRole, setRegRole] = useState('')
 
   const phoneRequired = regRole === 'owner' || regRole === 'worker'
 
   // Email OTP step
   const [registerStep, setRegisterStep] = useState<RegisterStep>('form')
-  const [otpDigits,    setOtpDigits]    = useState(['', '', '', '', '', ''])
-  const [resendTimer,  setResendTimer]  = useState(0)
-  const otpRefs  = useRef<(HTMLInputElement | null)[]>([])
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
+  const [resendTimer, setResendTimer] = useState(0)
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // FUTURE — MOBILE OTP: add phone OTP state here (phoneOtpDigits, phoneOtpRefs)
@@ -84,8 +84,8 @@ function LoginForm() {
     setApiError(null)
     setLoading(true)
     try {
-      const res  = await fetch('/api/auth/login', {
-        method:  'POST',
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ phone: loginPhone, password: loginPw }),
@@ -114,8 +114,8 @@ function LoginForm() {
     setApiError(null)
     setLoading(true)
     try {
-      const res  = await fetch('/api/auth/send-email-otp', {
-        method:  'POST',
+      const res = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: regEmail }),
       })
@@ -144,18 +144,18 @@ function LoginForm() {
     setApiError(null)
     setLoading(true)
     try {
-      const res  = await fetch('/api/auth/register', {
-        method:  'POST',
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          name:      regName,
-          phone:     regPhone,
-          email:     regEmail,
+          name: regName,
+          phone: regPhone,
+          email: regEmail,
           email_otp: emailOtp,
           // FUTURE — MOBILE OTP: phone_otp: phoneOtp,
-          password:  regPw,
-          role:      regRole,
+          password: regPw,
+          role: regRole,
         }),
       })
       const json = await res.json()
@@ -175,8 +175,8 @@ function LoginForm() {
     setApiError(null)
     setLoading(true)
     try {
-      const res  = await fetch('/api/auth/send-email-otp', {
-        method:  'POST',
+      const res = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: regEmail }),
       })
@@ -195,7 +195,7 @@ function LoginForm() {
   // ── OTP digit input handlers ───────────────────────────────────────────────
   const handleOtpChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, '').slice(-1)
-    const next  = [...otpDigits]; next[index] = digit; setOtpDigits(next)
+    const next = [...otpDigits]; next[index] = digit; setOtpDigits(next)
     if (digit && index < 5) otpRefs.current[index + 1]?.focus()
   }
 
@@ -231,11 +231,10 @@ function LoginForm() {
               <button
                 key={t}
                 onClick={() => switchTab(t)}
-                className={`flex-1 py-3.5 text-[13px] font-bold capitalize transition-colors ${
-                  tab === t
+                className={`flex-1 py-3.5 text-[13px] font-bold capitalize transition-colors ${tab === t
                     ? 'text-[#1B2B6B] border-b-2 border-[#1B2B6B]'
                     : 'text-[#8A8480] hover:text-[#1A1814]'
-                }`}
+                  }`}
               >
                 {t === 'login' ? 'Sign in' : 'Create account'}
               </button>
@@ -375,9 +374,8 @@ function LoginForm() {
                     {ROLES.map((r) => (
                       <button
                         key={r.id} type="button" onClick={() => { setRegRole(r.id); setRegPhone('') }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-[12px] border-2 transition-all text-left ${
-                          regRole === r.id ? 'border-[#1B2B6B] bg-[#E8ECF8]' : 'border-[#E5E0D5] hover:border-[#D0C9BC]'
-                        }`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-[12px] border-2 transition-all text-left ${regRole === r.id ? 'border-[#1B2B6B] bg-[#E8ECF8]' : 'border-[#E5E0D5] hover:border-[#D0C9BC]'
+                          }`}
                       >
                         <span className="text-[20px] leading-none" aria-hidden="true">{r.emoji}</span>
                         <div className="flex-1">
@@ -393,8 +391,8 @@ function LoginForm() {
                     ))}
                   </div>
 
-                  {/* Phone field — shown only for owner/worker */}
-                  {phoneRequired && (
+                  {/* Phone field — shown for all roles */}
+                  {regRole && (
                     <div className="mt-3 animate-[fadeIn_0.2s_ease]">
                       <label className="block text-[12px] font-semibold text-[#1A1814] mb-1.5">
                         Mobile number <span className="text-red-500">*</span>
@@ -408,11 +406,11 @@ function LoginForm() {
                           value={regPhone}
                           onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                           className="flex-1 bg-transparent text-[14px] text-[#1A1814] placeholder:text-[#8A8480] focus:outline-none"
-                          required={phoneRequired}
+                          required
                           autoFocus
                         />
                       </div>
-                      <p className="mt-1 text-[11px] text-[#8A8480]">Required for listing and contacting tenants.</p>
+                      <p className="mt-1 text-[11px] text-[#8A8480]">Used to contact you about your account.</p>
                     </div>
                   )}
                 </div>
