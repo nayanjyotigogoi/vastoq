@@ -232,7 +232,7 @@ export default function RentalsMapView({ listings, height, userLocation, onSelec
   return (
     <div
       className="relative w-full rounded-[14px] overflow-hidden border border-[#E5E0D5] shadow-vastoq-sm"
-      style={{ height: height ?? 'calc(100vh - 260px)', minHeight: 420 }}
+      style={{ height: height ?? 'calc(100vh - 260px)', minHeight: 420, isolation: 'isolate' }}
     >
       {/* -- Google Map canvas -- */}
       <div ref={mapRef} style={{ height: '100%', width: '100%' }} />

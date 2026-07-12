@@ -113,8 +113,16 @@ export default function LocalityCarousel({ locality, listings }: LocalityCarouse
           className="flex gap-4 overflow-x-auto pb-3"
           style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          {listings.map((listing) => (
-            <div key={listing.id} style={{ scrollSnapAlign: 'start', flexShrink: 0 }}>
+          {listings.map((listing, index) => (
+            <div
+              key={listing.id}
+              style={{
+                scrollSnapAlign: 'start',
+                flexShrink: 0,
+                animationDelay: `${Math.min(index * 60, 400)}ms`
+              }}
+              className="animate-fade-in-up"
+            >
               <ListingCarouselCard listing={listing} />
             </div>
           ))}

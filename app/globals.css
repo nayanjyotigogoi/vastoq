@@ -146,3 +146,19 @@
 
 /* Hide scrollbars on carousel tracks */
 .carousel-track::-webkit-scrollbar { display: none; }
+
+/* Smooth fade-in-up animation for property and worker listings */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

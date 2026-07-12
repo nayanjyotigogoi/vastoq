@@ -9,6 +9,7 @@ import { useUserLocation } from '@/hooks/useUserLocation'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { Listing } from './ListingCard'
 import type { Listing as ApiListing } from '@/lib/types'
+import PlaceAutocomplete from '@/components/ui/PlaceAutocomplete'
 
 const RentalsMapView = dynamic(() => import('./RentalsMapView'), {
   ssr: false,
@@ -119,6 +120,7 @@ export default function RentalsClient() {
   const [searchName, setSearchName] = useState('')
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveDone, setSaveDone] = useState(false)
+  const [searchLatLng, setSearchLatLng] = useState<{ lat: number; lng: number } | null>(null)
   // Track whether location was auto-applied (so user can dismiss the pill)
   const [locationApplied, setLocationApplied] = useState(false)
   const [locationDisplay, setLocationDisplay] = useState('') // suburb-level label for the pill
@@ -130,7 +132,7 @@ export default function RentalsClient() {
   const locationState = useUserLocation()
 
   // searchOverride lets us pass the city directly without waiting for state to update
-  const fetchListings = async (searchOverride?: string) => {
+  const fetchListings = async (searchOverride?: string, latLngOverride?: { lat: number; lng: number } | null) => {
     try {
       setLoading(true)
 
@@ -200,6 +202,13 @@ export default function RentalsClient() {
       if (searchTerm) params.set('search', searchTerm)
       else params.delete('search')
 
+      const latLng = searchTerm ? (latLngOverride !== undefined ? latLngOverride : searchLatLng) : null
+      if (latLng) {
+        params.append('latitude', String(latLng.lat))
+        params.append('longitude', String(latLng.lng))
+        params.append('radius', '10') // 10 km radius
+      }
+
       const res  = await fetch(`/api/listings?${params.toString()}`)
       const json = await res.json()
 
@@ -230,11 +239,16 @@ export default function RentalsClient() {
     const search      = searchParams.get('search')
     const maxRent     = searchParams.get('max_rent')
     const propertyType = searchParams.get('property_type')
+    const lat         = searchParams.get('lat')
+    const lng         = searchParams.get('lng')
     if (search)      setLocality(search)
     if (maxRent)     setBudget(Number(maxRent))
     if (propertyType) {
       const map: Record<string, string> = { flat:'Flat', pg:'PG', room:'Room', shared_room:'Shared Room', house:'House' }
       if (map[propertyType]) setSelectedTypes([map[propertyType]])
+    }
+    if (lat && lng) {
+      setSearchLatLng({ lat: Number(lat), lng: Number(lng) })
     }
   }, [searchParams])
 
@@ -252,7 +266,11 @@ export default function RentalsClient() {
       if (fallbackTimer.current) clearTimeout(fallbackTimer.current)
       if (!initialFetched.current) {
         initialFetched.current = true
-        fetchListings(urlSearch)
+        const lat = searchParams.get('lat')
+        const lng = searchParams.get('lng')
+        const latLng = lat && lng ? { lat: Number(lat), lng: Number(lng) } : null
+        if (latLng) setSearchLatLng(latLng)
+        fetchListings(urlSearch, latLng)
       }
       return
     }
@@ -426,8 +444,15 @@ export default function RentalsClient() {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap mt-1">
-          <p className="text-[14px] text-[#4A4640]">
-            {loading ? 'Loading��' : `${totalListings} listings found`}
+          <p className="text-[14px] text-[#4A4640] flex items-center gap-1.5 min-h-[20px]">
+            {loading ? (
+              <>
+                <Loader2 size={13} className="animate-spin text-[#1B2B6B]" />
+                <span>Finding properties...</span>
+              </>
+            ) : (
+              `${totalListings} listings found`
+            )}
           </p>
           {/* Save search */}
           {user?.userId && !saveDone && (
@@ -471,22 +496,22 @@ export default function RentalsClient() {
 
       {/* Search + Sort bar */}
       <div className="flex gap-3 mb-6 flex-wrap">
-        <div className="flex items-center gap-2 flex-1 min-w-[200px] bg-white border border-[#E5E0D5] rounded-[10px] px-3 py-2.5 shadow-vastoq-sm">
-          <Search size={15} className="text-[#8A8480] flex-shrink-0" />
-          <input
-            type="text"
-            placeholder="Search city, locality or area..."
-            value={locality}
-            onChange={(e) => setLocality(e.target.value)}
-            className="flex-1 bg-transparent text-[14px] text-[#1A1814] placeholder:text-[#8A8480] focus:outline-none"
-            aria-label="Search city, locality or area..."
-          />
-          {locality && (
-            <button onClick={() => setLocality('')} aria-label="Clear search">
-              <X size={14} className="text-[#8A8480]" />
-            </button>
-          )}
-        </div>
+        <PlaceAutocomplete
+          value={locality}
+          onChange={(val) => {
+            setLocality(val)
+            setSearchLatLng(null)
+          }}
+          onSelect={(val, latLng) => {
+            setLocality(val)
+            setSearchLatLng(latLng || null)
+            fetchListings(val, latLng || null)
+          }}
+          placeholder="Search city, locality or area..."
+          containerClassName="min-w-[200px] bg-white border border-[#E5E0D5] rounded-[10px] px-3 py-2.5 shadow-vastoq-sm"
+          icon={<Search size={15} className="text-[#8A8480] flex-shrink-0" />}
+          userLatLng={userLatLng}
+        />
 
         <button
           onClick={() => setShowFilters(!showFilters)}

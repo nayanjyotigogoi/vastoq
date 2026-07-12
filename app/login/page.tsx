@@ -106,6 +106,11 @@ function LoginForm() {
     e.preventDefault()
     if (!regRole) { setApiError('Please select your role.'); return }
     if (phoneRequired && regPhone.length < 10) { setApiError('Please enter your 10-digit mobile number.'); return }
+    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/
+    if (!passwordRegex.test(regPw)) {
+      setApiError('Password must be at least 8 characters long and contain a mix of letters and numbers.')
+      return
+    }
     setApiError(null)
     setLoading(true)
     try {
@@ -350,16 +355,17 @@ function LoginForm() {
                   <label className="block text-[12px] font-semibold text-[#1A1814] mb-1.5">Password</label>
                   <div className="flex items-center gap-2 px-3.5 py-3 border border-[#E5E0D5] rounded-[10px] focus-within:ring-2 focus-within:ring-[#1B2B6B]/30 focus-within:border-[#1B2B6B] transition-all">
                     <input
-                      type={showPw ? 'text' : 'password'} placeholder="Min. 6 characters"
+                      type={showPw ? 'text' : 'password'} placeholder="Min. 8 characters"
                       value={regPw} onChange={(e) => setRegPw(e.target.value)}
                       className="flex-1 bg-transparent text-[14px] text-[#1A1814] placeholder:text-[#8A8480] focus:outline-none"
-                      required minLength={6}
+                      required minLength={8}
                     />
                     <button type="button" onClick={() => setShowPw(!showPw)}
                       className="text-[#8A8480] hover:text-[#1A1814] transition-colors flex-shrink-0">
                       {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                  <p className="mt-1 text-[11px] text-[#8A8480]">Must be at least 8 characters with a mix of letters and numbers.</p>
                 </div>
 
                 {/* Role selector */}
@@ -414,7 +420,7 @@ function LoginForm() {
                 {apiError && <p className="text-[12px] text-red-600">{apiError}</p>}
 
                 <button type="submit"
-                  disabled={!regName || !regEmail || regPw.length < 6 || !regRole || (phoneRequired && regPhone.length < 10) || loading}
+                  disabled={!regName || !regEmail || regPw.length < 8 || !regRole || (phoneRequired && regPhone.length < 10) || loading}
                   className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#1B2B6B] text-white text-[15px] font-bold rounded-[10px] hover:bg-[#2D3E8C] transition-colors disabled:opacity-60 min-h-[52px]"
                 >
                   {loading ? <><Loader2 size={18} className="animate-spin" /> Sending code...</> : 'Continue →'}
