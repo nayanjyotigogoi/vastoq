@@ -164,7 +164,7 @@ export default function WorkerCard({ worker, onUnlock, className }: WorkerCardPr
             className="flex items-center gap-2 px-4 py-2 bg-[#1B2B6B] text-white text-[13px] font-semibold rounded-[8px] hover:bg-[#2D3E8C] transition-colors min-h-[40px]"
           >
             <Lock size={13} />
-            Unlock number — ₹{prices.worker_unlock}
+            Unlock number — {prices.worker_unlock} pts
           </button>
         )}
       </div>

@@ -7,6 +7,7 @@ import { Menu, X, ChevronDown } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { toast } from 'sonner'
 import NotificationBell from '@/components/nav/NotificationBell'
+import PointsInfoModal from '@/components/ui/PointsInfoModal'
 
 function ErrorToastHandler() {
   const router = useRouter()
@@ -161,6 +162,25 @@ export default function TopNav() {
             <>
               {/* Notifications */}
               <NotificationBell />
+
+              {/* Unlock Credits Badge */}
+              {user && ((user.role === 'tenant' && (user.free_unlocks_remaining ?? 0) > 0) || (user.vastoq_points ?? 0) > 0) && (
+                <div className="hidden md:flex items-center gap-2">
+                  {user.role === 'tenant' && (user.free_unlocks_remaining ?? 0) > 0 && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border bg-[#E1F5EE] border-[#1D9E75]/30 text-[#179068]">
+                      <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-[#1D9E75]"></span>
+                      <span>{user.free_unlocks_remaining} Free Unlocks</span>
+                    </div>
+                  )}
+                  {(user.vastoq_points ?? 0) > 0 && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border bg-[#E8ECF8] border-[#1B2B6B]/20 text-[#1B2B6B]">
+                      <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-[#1B2B6B]"></span>
+                      <span>{user.vastoq_points} Vastoq Points</span>
+                      <PointsInfoModal />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* User Dropdown */}
               <div

@@ -4,11 +4,13 @@ import TopNav from '@/components/nav/TopNav'
 import MobileNav from '@/components/nav/MobileNav'
 import Footer from '@/components/nav/Footer'
 import Link from 'next/link'
-import { Heart, Lock, MessageSquare, ChevronRight, Search, HardHat } from 'lucide-react'
+import { Heart, Lock, MessageSquare, ChevronRight, Search, HardHat, Zap, Loader2 } from 'lucide-react'
 import { resolveImageUrl } from '@/lib/utils'
 import ListingCard from '@/components/listing/ListingCard'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useEffect, useState } from 'react'
+import PointsInfoModal from '@/components/ui/PointsInfoModal'
+import { loadRazorpay } from '@/lib/razorpay'
 
 // const MOCK_UNLOCKED = [
 //   {
@@ -58,11 +60,88 @@ const QUICK_LINKS = [
   },
 ]
 
+type PkgState = 'idle' | 'creating_order' | 'processing' | 'completed'
+
 export default function TenantDashboard() {
-  const { user, loading } = useCurrentUser()
+  const { user, loading, reload: reloadUser } = useCurrentUser()
 
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [savedListings,  setSavedListings]  = useState<any[]>([])
+  const [pkgState, setPkgState] = useState<PkgState>('idle')
+  const [pkgError, setPkgError] = useState<string | null>(null)
+
+  const handleBuyPackage = async () => {
+    setPkgState('creating_order')
+    setPkgError(null)
+    try {
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+      if (!razorpayKey) {
+        setPkgError('Payment gateway not configured. Please contact support.')
+        setPkgState('idle')
+        return
+      }
+      const orderRes = await fetch('/api/payments/unlock-package/create-order', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const orderJson = await orderRes.json()
+      if (!orderRes.ok) {
+        setPkgError(orderJson.message || 'Failed to create package order')
+        setPkgState('idle')
+        return
+      }
+      const razorpayLoaded = await loadRazorpay()
+      if (!razorpayLoaded) {
+        setPkgError('Failed to load payment gateway. Please try again.')
+        setPkgState('idle')
+        return
+      }
+      setPkgState('processing')
+      const options = {
+        key: razorpayKey,
+        order_id: orderJson.order_id,
+        amount: orderJson.amount,
+        currency: orderJson.currency,
+        name: 'Vastoq',
+        description: '100 Vastoq Points — 5 listing unlocks or 10 worker unlocks',
+        prefill: { email: orderJson.contact },
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch('/api/payments/unlock-package/verify', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: user?.userId,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            })
+            const verifyJson = await verifyRes.json()
+            if (!verifyRes.ok) {
+              setPkgError(verifyJson.message || 'Verification failed')
+              setPkgState('idle')
+              return
+            }
+            setPkgState('completed')
+            reloadUser?.()
+            setTimeout(() => setPkgState('idle'), 2500)
+          } catch {
+            setPkgError('Network error during verification')
+            setPkgState('idle')
+          }
+        },
+        modal: { ondismiss: () => setPkgState('idle') },
+      }
+      const razorpay = new (window as any).Razorpay(options)
+      razorpay.open()
+    } catch {
+      setPkgError('Failed to initialize payment. Please try again.')
+      setPkgState('idle')
+    }
+  }
 
   useEffect(() => {
     if (!user?.userId) return
@@ -136,11 +215,11 @@ export default function TenantDashboard() {
         </div>
 
         {/* Stats bar */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             {
               label: 'Unlocks used',
-              value:dashboardData?.stats?.unlocks_used ?? '0',
+              value: dashboardData?.stats?.unlocks_used ?? '0',
               sub: 'this month',
             },
             {
@@ -149,15 +228,28 @@ export default function TenantDashboard() {
               sub: 'properties',
             },
             {
-              label: 'Unlock credits',
-              value: dashboardData?.stats?.unlock_credits ?? '0',
+              label: 'Free unlocks',
+              value: dashboardData?.stats?.free_unlocks ?? '0',
               sub: 'remaining',
+            },
+            {
+              label: 'Vastoq Points',
+              value: dashboardData?.stats?.vastoq_points ?? '0',
+              sub: 'points balance',
+              hasInfo: true,
+              hasBuy: user?.role === 'tenant',
             },
           ].map((s) => (
             <div
               key={s.label}
-              className="bg-white rounded-[14px] border border-[#E5E0D5] p-4 shadow-vastoq-sm text-center"
+              className="bg-white rounded-[14px] border border-[#E5E0D5] p-4 shadow-vastoq-sm text-center relative"
             >
+              {s.hasInfo && (
+                <div className="absolute top-2 right-2">
+                  <PointsInfoModal />
+                </div>
+              )}
+
               <p className="text-[26px] font-extrabold text-[#1B2B6B] leading-none">
                 {s.value}
               </p>
@@ -169,6 +261,22 @@ export default function TenantDashboard() {
               <p className="text-[10px] text-[#8A8480]">
                 {s.sub}
               </p>
+
+              {s.hasBuy && (
+                <>
+                  <button
+                    onClick={handleBuyPackage}
+                    disabled={pkgState !== 'idle'}
+                    className="mt-2 w-full flex items-center justify-center gap-1 px-3 py-1.5 bg-[#1B2B6B] hover:bg-[#2D3E8C] text-white text-[11px] font-bold rounded-[7px] transition-colors disabled:opacity-60"
+                  >
+                    {(pkgState === 'creating_order' || pkgState === 'processing') && <Loader2 size={10} className="animate-spin" />}
+                    {pkgState === 'completed' ? '✓ Purchased!' : <><Zap size={10} /> Buy Points</>}
+                  </button>
+                  {pkgError && (
+                    <p className="text-[10px] text-red-500 mt-1 leading-tight">{pkgError}</p>
+                  )}
+                </>
+              )}
             </div>
           ))}
         </div>

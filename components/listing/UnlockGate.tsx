@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { Lock, X, Check, Loader2, Tag, Phone, MapPin, CreditCard, AlertCircle, LogIn, UserPlus } from 'lucide-react'
+import { Lock, X, Check, Loader2, Tag, Phone, MapPin, CreditCard, AlertCircle, LogIn, UserPlus, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { loadRazorpay } from '@/lib/razorpay'
 import { usePrices } from '@/hooks/usePrices'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import PointsInfoModal from '@/components/ui/PointsInfoModal'
 
 interface UnlockGateProps {
   type: 'listing' | 'worker'
@@ -20,6 +21,9 @@ interface UnlockGateProps {
 type CouponState = 'idle' | 'checking' | 'valid' | 'invalid'
 type PaymentState = 'idle' | 'creating_order' | 'processing' | 'completed'
 
+// Points cost per unlock type
+const POINTS_COST = { listing: 20, worker: 10 } as const
+
 export default function UnlockGate({
   type,
   targetId,
@@ -30,8 +34,9 @@ export default function UnlockGate({
 }: UnlockGateProps) {
   const prices = usePrices()
   const unlockPrice = type === 'listing' ? prices.listing_unlock : prices.worker_unlock
-  const { user, loading: authLoading } = useCurrentUser()
+  const { user, loading: authLoading, reload: reloadUser } = useCurrentUser()
   const pathname = usePathname()
+  const pointsCost = POINTS_COST[type]
 
   const [coupon,       setCoupon]       = useState('')
   const [couponState,  setCouponState]  = useState<CouponState>('idle')
@@ -44,6 +49,10 @@ export default function UnlockGate({
   const [paymentState, setPaymentState] = useState<PaymentState>('idle')
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [showPaymentOption, setShowPaymentOption] = useState(false)
+
+  // Package payment states
+  const [pkgState, setPkgState] = useState<PaymentState>('idle')
+  const [pkgError, setPkgError] = useState<string | null>(null)
 
   // ── Validate coupon against backend ──────────────────────────────────────────
   const handleApplyCoupon = async () => {
@@ -172,6 +181,7 @@ export default function UnlockGate({
             }
 
             setPaymentState('completed')
+            reloadUser?.()
             onSuccess?.(verifyJson.data)
             setTimeout(() => onClose?.(), 1000)
           } catch (err) {
@@ -192,6 +202,99 @@ export default function UnlockGate({
       console.error('Payment initialization error:', err)
       setPaymentError('Failed to initialize payment. Please try again.')
       setPaymentState('idle')
+    }
+  }
+
+  const handleBuyPackage = async () => {
+    setPkgState('creating_order')
+    setPkgError(null)
+
+    try {
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+      if (!razorpayKey) {
+        setPkgError('Payment gateway not configured. Please contact support.')
+        setPkgState('idle')
+        return
+      }
+
+      const orderRes = await fetch('/api/payments/unlock-package/create-order', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      const orderJson = await orderRes.json()
+
+      if (!orderRes.ok) {
+        setPkgError(orderJson.message || 'Failed to create package order')
+        setPkgState('idle')
+        return
+      }
+
+      const razorpayLoaded = await loadRazorpay()
+      if (!razorpayLoaded) {
+        setPkgError('Failed to load payment gateway. Please try again.')
+        setPkgState('idle')
+        return
+      }
+
+      setPkgState('processing')
+
+      const options = {
+        key: razorpayKey,
+        order_id: orderJson.order_id,
+        amount: orderJson.amount,
+        currency: orderJson.currency,
+        name: 'Vastoq',
+        description: 'Premium Pack - 5 Unlocks + Guarantee',
+        prefill: {
+          email: orderJson.contact,
+        },
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch('/api/payments/unlock-package/verify', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: user?.userId,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            })
+
+            const verifyJson = await verifyRes.json()
+
+            if (!verifyRes.ok) {
+              setPkgError(verifyJson.message || 'Verification failed')
+              setPkgState('idle')
+              return
+            }
+
+            setPkgState('completed')
+            reloadUser?.()
+            setTimeout(() => {
+              setPkgState('idle')
+            }, 1500)
+          } catch (err) {
+            setPkgError('Network error during verification')
+            setPkgState('idle')
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setPkgState('idle')
+          },
+        },
+      }
+
+      const razorpay = new (window as any).Razorpay(options)
+      razorpay.open()
+    } catch (err) {
+      console.error('Package payment initialization error:', err)
+      setPkgError('Failed to purchase package. Please try again.')
+      setPkgState('idle')
     }
   }
 
@@ -221,6 +324,7 @@ export default function UnlockGate({
         return
       }
 
+      reloadUser?.()
       onSuccess?.(json.data)
       onClose?.()
     } catch {
@@ -230,7 +334,9 @@ export default function UnlockGate({
     }
   }
 
-  const canUnlock = couponState === 'valid'
+  const freeUnlocks = user?.role === 'tenant' ? (user.free_unlocks_remaining ?? 0) : 0
+  const hasCredits = user && (freeUnlocks > 0 || (user.vastoq_points ?? 0) >= pointsCost)
+  const canUnlock = couponState === 'valid' || !!hasCredits
 
   // ── Auth-gated screen ───────────────────────────────────────────────────────
   const loginUrl = `/login?next=${encodeURIComponent(pathname)}`
@@ -391,7 +497,45 @@ export default function UnlockGate({
           </div>
         </div>
 
-        {/* Coupon section — primary path */}
+        {/* Points / Credits Status */}
+        {hasCredits && (
+          <div className="mx-5 px-3.5 py-3 bg-[#E1F5EE] border border-[#1D9E75]/20 rounded-[10px] flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Zap size={13} className="text-[#179068]" />
+                <span className="text-[13px] font-bold text-[#179068]">Your Vastoq Points</span>
+                <PointsInfoModal />
+              </div>
+              <span className="text-[11px] font-bold text-[#1D9E75] uppercase tracking-wider bg-white/70 px-2 py-0.5 rounded-full">
+                Ready
+              </span>
+            </div>
+            <div className="text-[12.5px] text-[#4A4640] font-medium flex flex-col gap-0.5">
+              {user?.role === 'tenant' && (user?.free_unlocks_remaining ?? 0) > 0 && (
+                <div>• Free unlocks: <span className="font-bold text-[#179068]">{user?.free_unlocks_remaining} left</span></div>
+              )}
+              {(user?.vastoq_points ?? 0) > 0 && (
+                <div>• Vastoq Points: <span className="font-bold text-[#179068]">{user?.vastoq_points} pts</span> <span className="text-[#8A8480] font-normal">(costs {pointsCost} pts)</span></div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Non-tenant notice — owners & workers cannot unlock listings */}
+        {user && user.role !== 'tenant' && (
+          <div className="mx-5 my-3 px-4 py-3.5 bg-[#FEF3DC] border border-[#E8A020]/30 rounded-[12px] flex gap-3">
+            <AlertCircle size={16} className="text-[#E8A020] flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[13px] font-bold text-[#1A1814]">Unlocking is for tenants only</p>
+              <p className="text-[12px] text-[#4A4640] mt-0.5 leading-snug">
+                Only tenant accounts can unlock contact details. You're signed in as a <span className="font-semibold capitalize">{user.role}</span>.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Coupon section — tenants only */}
+        {(!user || user.role === 'tenant') && (
         <div className="px-5 py-3">
           <p className="text-[12px] text-[#8A8480] font-medium mb-2 uppercase tracking-wide">Have a coupon?</p>
           <div className="flex gap-2">
@@ -439,32 +583,44 @@ export default function UnlockGate({
             </p>
           )}
         </div>
+        )}
 
-        {/* Divider */}
-        <div className="px-5 flex items-center gap-3 py-1">
-          <div className="flex-1 h-px bg-[#F5F0E8]" />
-          <span className="text-[11px] text-[#8A8480]">or</span>
-          <div className="flex-1 h-px bg-[#F5F0E8]" />
-        </div>
-
-        {/* Pay option */}
-        <div className="px-5 py-3">
-          <button
-            onClick={handlePayment}
-            disabled={paymentState !== 'idle'}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-[10px] border border-[#E5E0D5] bg-gradient-to-r from-[#E8ECF8] to-[#FAFAF8] hover:border-[#1B2B6B]/30 hover:shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <div className="flex items-center gap-2">
-              {paymentState === 'idle' && <CreditCard size={15} className="text-[#1B2B6B]" />}
-              {paymentState !== 'idle' && <Loader2 size={15} className="text-[#1B2B6B] animate-spin" />}
-              <span className="text-[13px] font-semibold text-[#1A1814]">Pay ₹{unlockPrice} to unlock</span>
+        {/* Premium Package Option — tenants only */}
+        {user?.role === 'tenant' && (
+        <div className="px-5 py-2">
+          <div className="relative overflow-hidden rounded-[12px] border border-[#1B2B6B]/30 bg-gradient-to-br from-[#F0F4FF] via-[#FAFAF8] to-[#FFF9F2] p-4 shadow-vastoq-sm">
+            <div className="absolute top-0 right-0 bg-[#1B2B6B] text-white text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-bl-[8px] tracking-wider animate-pulse">
+              Best Value
             </div>
-            <span className="text-[12px] font-bold text-[#1D9E75]">
-              {paymentState === 'completed' && '✓ Success'}
-              {paymentState !== 'completed' && '→'}
-            </span>
-          </button>
+            
+            <div className="flex items-center gap-1.5 mb-1">
+              <Zap size={14} className="text-[#1B2B6B]" />
+              <h3 className="text-[14px] font-extrabold text-[#1B2B6B]">100 Vastoq Points</h3>
+              <PointsInfoModal />
+            </div>
+            <p className="text-[11.5px] text-[#4A4640] font-medium leading-snug">
+              Unlock <span className="font-bold text-[#1B2B6B]">5 listings</span> (20 pts each) or <span className="font-bold text-[#1B2B6B]">10 workers</span> (10 pts each) — your choice.
+              Includes <span className="text-[#179068] font-bold">Rental Agreement Guarantee</span>.
+            </p>
+
+            <div className="mt-3 flex items-center justify-between gap-4">
+              <span className="text-[16px] font-black text-[#1A1814]">₹99 <span className="text-[11px] font-normal text-[#8A8480] line-through">₹100</span></span>
+              
+              <button
+                onClick={handleBuyPackage}
+                disabled={pkgState !== 'idle'}
+                className="px-4 py-2 bg-[#1B2B6B] hover:bg-[#2D3E8C] text-white text-[12px] font-extrabold rounded-[8px] transition-colors flex items-center gap-1.5 min-h-[36px]"
+              >
+                {(pkgState === 'creating_order' || pkgState === 'processing') && <Loader2 size={12} className="animate-spin" />}
+                {pkgState === 'completed' ? 'Purchased!' : 'Buy Pack'}
+              </button>
+            </div>
+            {pkgError && (
+              <p className="text-[11px] text-red-600 mt-2 font-medium">{pkgError}</p>
+            )}
+          </div>
         </div>
+        )}
 
         {/* Error */}
         {(unlockError || paymentError) && (
@@ -474,7 +630,8 @@ export default function UnlockGate({
           </div>
         )}
 
-        {/* CTA */}
+        {/* CTA — tenants only */}
+        {(!user || user.role === 'tenant') && (
         <div className="px-5 pb-6 pt-3">
           <button
             onClick={handleUnlock}
@@ -490,10 +647,14 @@ export default function UnlockGate({
               <><Loader2 size={18} className="animate-spin" /> Processing...</>
             ) : paymentState === 'completed' ? (
               <><Check size={16} /> Unlocked!</>
+            ) : user?.role === 'tenant' && (user?.free_unlocks_remaining ?? 0) > 0 ? (
+              <><Check size={16} /> Use Free Unlock</>
+            ) : (user?.vastoq_points ?? 0) >= pointsCost ? (
+              <><Zap size={16} /> Use {pointsCost} Points to Unlock</>
             ) : canUnlock ? (
               <><Check size={16} /> Unlock for free</>
             ) : (
-              <><Lock size={16} /> Apply a coupon or pay to unlock</>
+              <><Lock size={16} /> Apply a coupon or buy points to unlock</>
             )}
           </button>
 
@@ -501,6 +662,7 @@ export default function UnlockGate({
             Contact + location revealed instantly · No broker · Valid 30 days
           </p>
         </div>
+        )}
       </div>
     </div>
   )

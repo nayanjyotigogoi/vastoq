@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
           await fetch(`${apiUrl}/auth/update-profile`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
-            body: JSON.stringify({ user_id: data.id, name: data.name, phone }),
+            body: JSON.stringify({ user_id: data.id, name: data.name, phone, email: data.email }),
           });
         }
       }
