@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, X, Loader2, MapPin } from 'lucide-react'
+import { Search, X, Loader2, MapPin, ChevronDown, Check } from 'lucide-react'
 import WorkerCard from './WorkerCard'
 import type { Worker } from './WorkerCard'
 import UnlockGate from '@/components/listing/UnlockGate'
@@ -11,27 +11,34 @@ import { useUserLocation } from '@/hooks/useUserLocation'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import PlaceAutocomplete from '@/components/ui/PlaceAutocomplete'
 
-const CATEGORIES = [
-  'All', 'Electrician', 'Plumber', 'Carpenter', 'Painter',
-  'Cleaner', 'AC Technician', 'Driver', 'Mason', 'Cook', 'Security Guard',
+const CATEGORY_GROUPS: { label: string; items: string[] }[] = [
+  { label: 'Home Services',   items: ['Electrician', 'Plumber', 'Carpenter', 'Painter', 'Cleaner', 'AC Technician', 'Mason', 'Gardener', 'Welder', 'Mechanic'] },
+  { label: 'Events & Beauty', items: ['Photographer', 'Videographer', 'Makeup Artist', 'Mehendi Artist', 'Musician', 'Event Decorator', 'Catering Staff'] },
+  { label: 'Creative',        items: ['Artist / Illustrator', 'Tailor'] },
+  { label: 'Wellness & Education', items: ['Tutor / Teacher', 'Yoga Instructor', 'Fitness Trainer'] },
+  { label: 'Other',           items: ['Cook', 'Driver', 'Security Guard', 'Other'] },
 ]
+
+const POPULAR_CATEGORIES = ['Electrician', 'Plumber', 'Photographer', 'Makeup Artist', 'Cook']
+const POPULAR_CATEGORIES_MOBILE = ['Electrician', 'Plumber', 'Cook']
+const ALL_CATEGORIES = ['All', ...CATEGORY_GROUPS.flatMap(g => g.items)]
 
 function normalise(w: any): Worker {
   return {
     id              : String(w.id),
     name            : w.name ?? '',
-    avatar          : resolveImageUrl(w.photo_url) || undefined,
+    avatar          : resolveImageUrl(w.photoUrl ?? w.photo_url) || undefined,
     category        : w.category ?? '',
     skills          : Array.isArray(w.skills) ? w.skills : [],
-    localities      : Array.isArray(w.service_areas) && w.service_areas.length
-                        ? w.service_areas
+    localities      : Array.isArray(w.serviceAreas ?? w.service_areas) && (w.serviceAreas ?? w.service_areas).length
+                        ? (w.serviceAreas ?? w.service_areas)
                         : w.locality ? [w.locality] : [],
-    hourlyRate      : w.rate_per_day ?? 0,
+    hourlyRate      : w.ratePerDay ?? w.rate_per_day ?? 0,
     ratingAvg       : parseFloat(w.rating ?? 0),
-    ratingCount     : w.review_count ?? 0,
-    jobsCompleted   : w.jobs_completed ?? 0,
-    isVerified      : w.is_verified ?? false,
-    isAvailableToday: w.available_today ?? false,
+    ratingCount     : w.reviewCount ?? w.review_count ?? 0,
+    jobsCompleted   : w.jobsCompleted ?? w.jobs_completed ?? 0,
+    isVerified      : w.isVerified ?? w.is_verified ?? false,
+    isAvailableToday: w.availableToday ?? w.available_today ?? false,
     isUnlocked      : false,
     phone           : undefined,
   }
@@ -47,6 +54,7 @@ export default function WorkersClient() {
   const [total,          setTotal]          = useState(0)
   const [search,         setSearch]         = useState('')
   const [category,       setCategory]       = useState('All')
+  const [categorySheetOpen, setCategorySheetOpen] = useState(false)
   const [availOnly,      setAvailOnly]      = useState(false)
   const [verifiedOnly,   setVerifiedOnly]   = useState(false)
 
@@ -155,6 +163,7 @@ export default function WorkersClient() {
     setCityFilter('')
     setLocationLabel('')
     setLocationPinned(false)
+    fetchWorkers('')
   }
 
   const clearAll = () => {
@@ -165,6 +174,7 @@ export default function WorkersClient() {
     setCityFilter('')
     setLocationLabel('')
     setLocationPinned(false)
+    fetchWorkers('', '')
   }
 
   const isDetecting = locationState.status === 'idle' || locationState.status === 'requesting'
@@ -173,7 +183,7 @@ export default function WorkersClient() {
     : undefined
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 pb-28 lg:pb-8">
       {/* Header */}
       <div className="mb-5">
         <h1 className="text-[28px] font-bold text-[#1A1814] mb-1">Local Workers</h1>
@@ -222,22 +232,106 @@ export default function WorkersClient() {
 
       {/* Filters */}
       <div className="flex flex-col gap-3 mb-6">
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-          {CATEGORIES.map((cat) => (
+        <div className="flex gap-2 items-center">
+          {/* Scrollable chips — All + popular picks */}
+          <div className="flex gap-2 overflow-x-auto pb-1 flex-1 min-w-0" style={{ scrollbarWidth: 'none' }}>
             <button
-              key={cat}
-              onClick={() => setCategory(cat)}
+              onClick={() => setCategory('All')}
               className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${
-                category === cat
+                category === 'All'
                   ? 'bg-[#1B2B6B] text-white border-[#1B2B6B]'
                   : 'bg-white text-[#4A4640] border-[#E5E0D5] hover:border-[#1B2B6B]'
               }`}
-            >
-              {cat}
-            </button>
-          ))}
+            >All</button>
+
+            {POPULAR_CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${
+                  POPULAR_CATEGORIES_MOBILE.includes(cat) ? '' : 'hidden sm:inline-flex'
+                } ${
+                  category === cat
+                    ? 'bg-[#1B2B6B] text-white border-[#1B2B6B]'
+                    : 'bg-white text-[#4A4640] border-[#E5E0D5] hover:border-[#1B2B6B]'
+                }`}
+              >{cat}</button>
+            ))}
+          </div>
+
+          {/* More button — always pinned on the right, never scrolls away */}
+          <button
+            onClick={() => setCategorySheetOpen(true)}
+            className={`flex-shrink-0 flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${
+              category !== 'All' && !POPULAR_CATEGORIES.includes(category)
+                ? 'bg-[#1B2B6B] text-white border-[#1B2B6B]'
+                : 'bg-white text-[#4A4640] border-[#E5E0D5] hover:border-[#1B2B6B]'
+            }`}
+          >
+            {category !== 'All' && !POPULAR_CATEGORIES.includes(category) ? category : 'More'}
+            <ChevronDown size={12} />
+          </button>
         </div>
-        <div className="flex gap-2">
+
+        {/* Category picker modal */}
+        {categorySheetOpen && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={() => setCategorySheetOpen(false)}
+          >
+            <div
+              className="bg-white w-full max-w-md rounded-[20px] max-h-[80vh] flex flex-col shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F5F0E8] flex-shrink-0">
+                <h3 className="text-[15px] font-bold text-[#1A1814]">Select Category</h3>
+                <button
+                  onClick={() => setCategorySheetOpen(false)}
+                  className="p-1.5 rounded-lg hover:bg-[#F5F0E8] transition-colors"
+                >
+                  <X size={17} className="text-[#4A4640]" />
+                </button>
+              </div>
+
+              {/* Scrollable content */}
+              <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5 pb-6">
+                <button
+                  onClick={() => { setCategory('All'); setCategorySheetOpen(false) }}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-[10px] text-[13px] font-semibold border transition-colors ${
+                    category === 'All' ? 'bg-[#1B2B6B] text-white border-[#1B2B6B]' : 'border-[#E5E0D5] text-[#1A1814] hover:bg-[#F5F0E8]'
+                  }`}
+                >
+                  All Categories
+                  {category === 'All' && <Check size={14} />}
+                </button>
+                {CATEGORY_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#8A8480] mb-2">{group.label}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.items.map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => { setCategory(cat); setCategorySheetOpen(false) }}
+                          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${
+                            category === cat
+                              ? 'bg-[#1B2B6B] text-white border-[#1B2B6B]'
+                              : 'bg-[#F5F0E8] text-[#4A4640] border-transparent hover:border-[#1B2B6B]'
+                          }`}
+                        >
+                          {cat}
+                          {category === cat && <Check size={11} />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-2 items-center flex-wrap">
           <button
             onClick={() => setAvailOnly((v) => !v)}
             className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${
@@ -254,6 +348,14 @@ export default function WorkersClient() {
           >
             ✓ Verified only
           </button>
+          {(category !== 'All' || availOnly || verifiedOnly || search) && (
+            <button
+              onClick={clearAll}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold text-[#D84040] border border-[#D84040]/30 bg-red-50 hover:bg-red-100 transition-colors"
+            >
+              <X size={11} /> Clear filters
+            </button>
+          )}
         </div>
       </div>
 

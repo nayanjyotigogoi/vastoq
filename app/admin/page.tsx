@@ -324,7 +324,7 @@ export default function AdminPanel() {
                         {l.isBroker && <span className="px-2 py-0.5 bg-red-50 text-[#D84040] text-[10px] font-bold rounded-full">Broker</span>}
                       </div>
                       <p className="text-[11px] text-[#8A8480]">
-                        {l.locality}, {l.city} · ₹{Math.round(l.rentPerMonth / 100).toLocaleString('en-IN')}/mo · {l.bhkType}
+                        {l.locality}, {l.city} · ₹{Number(l.rentPerMonth).toLocaleString('en-IN')}/mo · {l.bhkType}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -376,8 +376,11 @@ export default function AdminPanel() {
             ) : (
               workers.map((w, i) => (
                 <div key={w.id} className={`flex items-center gap-4 px-5 py-4 ${i < workers.length - 1 ? 'border-b border-[#F5F0E8]' : ''}`}>
-                  <div className="w-10 h-10 rounded-full bg-[#E8ECF8] flex items-center justify-center font-bold text-[#1B2B6B] flex-shrink-0">
-                    {w.name.charAt(0)}
+                  <div className="w-10 h-10 rounded-full bg-[#E8ECF8] flex items-center justify-center font-bold text-[#1B2B6B] flex-shrink-0 overflow-hidden">
+                    {w.photoUrl
+                      ? <img src={resolveImageUrl(w.photoUrl)} alt={w.name} className="w-full h-full object-cover" />
+                      : w.name.charAt(0)
+                    }
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
@@ -391,7 +394,7 @@ export default function AdminPanel() {
                       )}
                     </div>
                     <p className="text-[11px] text-[#8A8480]">
-                      {w.category} · {w.ratePerDay ? `₹${Math.round(w.ratePerDay / 100)}/day` : 'Rate TBD'} · {w.locality}, {w.city}
+                      {w.category} · {w.ratePerDay ? `₹${Number(w.ratePerDay).toLocaleString('en-IN')}/day` : 'Rate TBD'} · {w.locality}, {w.city}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0 text-center hidden sm:flex">

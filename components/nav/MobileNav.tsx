@@ -53,7 +53,7 @@ export default function MobileNav() {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#E5E0D5] shadow-vastoq-lg"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E5E0D5] shadow-vastoq-lg"
       aria-label="Mobile navigation"
     >
       {/* Credits strip — only shown when user has unlocks or points available */}

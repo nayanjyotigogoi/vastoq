@@ -3,6 +3,35 @@ import { ok, error } from '@/lib/api/response'
 import { requireAuth } from '@/lib/auth'
 import { listWorkers, createWorkerProfile } from '@/lib/services/workers.service'
 
+function toWorker(w: any) {
+  return {
+    id:             w.id,
+    userId:         w.user_id,
+    name:           w.name,
+    phone:          w.phone,
+    category:       w.category,
+    skills:         w.skills ?? [],
+    bio:            w.bio,
+    city:           w.city,
+    locality:       w.locality,
+    ratePerDay:     w.rate_per_day,
+    photoUrl:       w.photo_url ?? null,
+    rating:         w.rating,
+    reviewCount:    w.review_count,
+    viewCount:      w.view_count,
+    isVerified:     !!w.is_verified,
+    isActive:       !!w.is_active,
+    availableToday: !!w.available_today,
+    serviceAreas:   w.service_areas ?? [],
+    aadhaarStatus:        w.aadhaar_status,
+    aadhaarFrontUrl:      w.aadhaar_front_url ?? null,
+    aadhaarBackUrl:       w.aadhaar_back_url ?? null,
+    aadhaarSubmittedAt:   w.aadhaar_submitted_at,
+    aadhaarRejectionReason: w.aadhaar_rejection_reason,
+    createdAt:      w.created_at,
+  }
+}
+
 // GET /api/workers — public list, proxied to backend
 export async function GET(req: NextRequest) {
   try {
@@ -18,7 +47,10 @@ export async function GET(req: NextRequest) {
       limit   : sp.get('limit')    ? Number(sp.get('limit'))    : undefined,
     }
     const data = await listWorkers(filters)
-    return ok(data)
+    // Laravel shape: { success, data: { data: [...], total, ... } }
+    const pagination = data?.data ?? {}
+    const workers = (pagination?.data ?? []).map(toWorker)
+    return ok({ ...pagination, data: workers })
   } catch (e: any) {
     return error(e?.response?.data?.message ?? e?.message ?? 'Failed to fetch workers', 500)
   }

@@ -25,7 +25,7 @@ const variants: Record<BadgeVariant, string> = {
 const labels: Record<BadgeVariant, string> = {
   verified: 'Verified',
   popular: 'Popular',
-  boosted: 'Boosted',
+  boosted: 'Featured',
   broker: 'Broker',
   commercial: 'Commercial',
 }
