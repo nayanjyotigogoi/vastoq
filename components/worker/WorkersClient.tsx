@@ -41,6 +41,7 @@ function normalise(w: any): Worker {
     isAvailableToday: w.availableToday ?? w.available_today ?? false,
     isUnlocked      : false,
     phone           : undefined,
+    workPhotos      : Array.isArray(w.workPhotos ?? w.work_photos) ? (w.workPhotos ?? w.work_photos) : [],
   }
 }
 

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Star, MapPin, Lock, Copy, Check } from 'lucide-react'
 import { useState } from 'react'
 import { VerifiedAvatar, Chip } from '@/components/ui/vastoq-badge'
-import { cn } from '@/lib/utils'
+import { cn, resolveImageUrl } from '@/lib/utils'
 import { usePrices } from '@/hooks/usePrices'
 
 export interface Worker {
@@ -22,6 +22,7 @@ export interface Worker {
   isAvailableToday: boolean
   isUnlocked?: boolean
   phone?: string
+  workPhotos?: string[]
 }
 
 interface WorkerCardProps {
@@ -110,6 +111,26 @@ export default function WorkerCard({ worker, onUnlock, className }: WorkerCardPr
               <Chip variant="default" className="text-[11px]">+{worker.skills.length - 3}</Chip>
             )}
           </div>
+
+          {/* Work photos strip */}
+          {worker.workPhotos && worker.workPhotos.length > 0 && (
+            <div className="flex gap-1.5 mb-2.5 overflow-hidden">
+              {worker.workPhotos.slice(0, 4).map((url, i) => (
+                <img
+                  key={i}
+                  src={resolveImageUrl(url)}
+                  alt=""
+                  className="w-14 h-14 rounded-[6px] object-cover flex-shrink-0"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                />
+              ))}
+              {worker.workPhotos.length > 4 && (
+                <div className="w-14 h-14 rounded-[6px] bg-[#F5F0E8] flex items-center justify-center flex-shrink-0">
+                  <span className="text-[11px] font-semibold text-[#8A8480]">+{worker.workPhotos.length - 4}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Meta row */}
           <div className="flex flex-wrap items-center gap-3 text-[12px] text-[#4A4640]">
