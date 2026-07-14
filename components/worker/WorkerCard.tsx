@@ -79,17 +79,19 @@ export default function WorkerCard({ worker, onUnlock, className }: WorkerCardPr
                     'w-1.5 h-1.5 rounded-full flex-shrink-0',
                     worker.isAvailableToday ? 'bg-[#1D9E75]' : 'bg-[#E8A020]'
                   )}
-                  aria-label={worker.isAvailableToday ? 'Available today' : 'Limited availability'}
                 />
-                <span
-                  className={cn(
-                    'text-[11px] font-medium',
-                    worker.isAvailableToday ? 'text-[#1D9E75]' : 'text-[#E8A020]'
-                  )}
-                >
-                  {worker.isAvailableToday ? 'Available today' : 'Limited'}
+                <span className={cn('text-[11px] font-medium', worker.isAvailableToday ? 'text-[#1D9E75]' : 'text-[#E8A020]')}>
+                  {worker.isAvailableToday ? 'Available today' : 'Busy today'}
                 </span>
               </div>
+              {worker.localities.length > 0 && (
+                <div className="flex items-center gap-1 mt-1">
+                  <MapPin size={11} className="text-[#8A8480] flex-shrink-0" />
+                  <span className="text-[12px] text-[#4A4640]">
+                    {worker.localities.slice(0, 2).join(', ')}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Rate */}
@@ -141,11 +143,6 @@ export default function WorkerCard({ worker, onUnlock, className }: WorkerCardPr
             </div>
             <span className="text-[#D0C9BC]">·</span>
             <span>{worker.jobsCompleted} jobs</span>
-            <span className="text-[#D0C9BC]">·</span>
-            <div className="flex items-center gap-1">
-              <MapPin size={11} className="text-[#8A8480]" />
-              <span className="truncate max-w-[100px]">{worker.localities.slice(0, 2).join(', ')}</span>
-            </div>
           </div>
         </div>
       </div>

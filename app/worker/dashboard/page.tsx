@@ -57,20 +57,13 @@ type DashboardStats = {
   review_count: number
 }
 
-type Review = {
-  id: number
-  reviewer: string
-  rating: number
-  comment: string
-  date: string
-}
 
 export default function WorkerDashboard() {
   const { user, loading: userLoading } = useCurrentUser()
 
   const [worker, setWorker] = useState<WorkerProfile | null>(null)
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [reviews, setReviews] = useState<Review[]>([])
+
   const [loading, setLoading] = useState(true)
   const [noProfile, setNoProfile] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -97,7 +90,7 @@ export default function WorkerDashboard() {
 
         setWorker(json.data.worker)
         setStats(json.data.stats)
-        setReviews(json.data.reviews ?? [])
+
       } catch {
         setError('Network error. Please refresh.')
       } finally {
@@ -391,32 +384,6 @@ export default function WorkerDashboard() {
               )}
             </div>
 
-            {/* Reviews */}
-            <div className="bg-white rounded-[16px] border border-[#E5E0D5] p-5 shadow-vastoq-sm">
-              <h2 className="text-[15px] font-bold text-[#1A1814] mb-4">Recent reviews</h2>
-              {reviews.length === 0 ? (
-                <p className="text-[13px] text-[#8A8480] text-center py-4">
-                  No reviews yet. Complete jobs to earn reviews.
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {reviews.map((r) => (
-                    <div key={r.id} className="pb-4 border-b border-[#F5F0E8] last:border-0 last:pb-0">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[13px] font-semibold text-[#1A1814]">{r.reviewer}</span>
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: r.rating }).map((_, i) => (
-                            <Star key={i} size={11} className="fill-[#E8A020] stroke-[#E8A020]" />
-                          ))}
-                          <span className="text-[11px] text-[#8A8480] ml-1">{r.date}</span>
-                        </div>
-                      </div>
-                      <p className="text-[12px] text-[#4A4640] leading-relaxed">{r.comment}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Right */}
