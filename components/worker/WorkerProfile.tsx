@@ -1,23 +1,16 @@
 'use client'
 
-import { useState, Fragment, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Star, MapPin, Lock, Copy, Check, MessageSquare, Loader2 } from 'lucide-react'
+import { Star, MapPin, Lock, Copy, Check, Loader2 } from 'lucide-react'
 import { VerifiedAvatar, Chip } from '@/components/ui/vastoq-badge'
 import UnlockGate from '@/components/listing/UnlockGate'
 import type { Worker } from './WorkerCard'
 import { usePrices } from '@/hooks/usePrices'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import PointsInfoModal from '@/components/ui/PointsInfoModal'
+import { resolveImageUrl } from '@/lib/utils'
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const SLOTS = ['Morning', 'Afternoon', 'Evening']
-
-const mockAvailability = (worker: Worker) =>
-  DAYS.reduce<Record<string, string[]>>((acc, day) => {
-    acc[day] = worker.isVerified ? SLOTS.slice(0, 2) : []
-    return acc
-  }, {})
 
 export default function WorkerProfile({ worker }: { worker: Worker }) {
   const prices = usePrices()
@@ -28,8 +21,6 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
   const [revealedPhone, setRevealedPhone] = useState<string | undefined>(worker.phone)
   const [copied,        setCopied]        = useState(false)
   const [statusLoading, setStatusLoading] = useState(true)
-  const availability = mockAvailability(worker)
-
   // Guard: redirect to login if not authenticated when trying to unlock
   const openUnlock = () => {
     if (!user) {
@@ -105,6 +96,25 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
             </div>
           </div>
 
+          {/* Work Photos */}
+          {worker.workPhotos && worker.workPhotos.length > 0 && (
+            <div className="bg-white rounded-[18px] border border-[#E5E0D5] p-5 mb-5 shadow-vastoq-sm">
+              <h2 className="text-[16px] font-bold text-[#1A1814] mb-3">Work photos</h2>
+              <div className="grid grid-cols-3 gap-2">
+                {worker.workPhotos.map((url, i) => (
+                  <a key={i} href={resolveImageUrl(url)} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-[10px] overflow-hidden block bg-[#F5F0E8]">
+                    <img
+                      src={resolveImageUrl(url)}
+                      alt={`Work photo ${i + 1}`}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                    />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Localities */}
           <div className="bg-white rounded-[18px] border border-[#E5E0D5] p-5 mb-5 shadow-vastoq-sm">
             <h2 className="text-[16px] font-bold text-[#1A1814] mb-3">Service areas</h2>
@@ -118,30 +128,21 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
             </div>
           </div>
 
-          {/* Availability grid */}
+          {/* Availability */}
           <div className="bg-white rounded-[18px] border border-[#E5E0D5] p-5 mb-5 shadow-vastoq-sm">
-            <h2 className="text-[16px] font-bold text-[#1A1814] mb-4">Availability</h2>
-            <div className="grid grid-cols-8 gap-1 text-center">
-              <div className="text-[10px] font-bold text-[#8A8480]" />
-              {DAYS.map((d) => (
-                <div key={d} className="text-[10px] font-bold text-[#8A8480] uppercase">{d}</div>
-              ))}
-              {SLOTS.map((slot) => (
-                <Fragment key={slot}>
-                  <div className="text-[9px] text-[#8A8480] text-right pr-1 flex items-center justify-end">{slot.slice(0, 3)}</div>
-                  {DAYS.map((day) => (
-                    <div
-                      key={`${day}-${slot}`}
-                      className={`h-6 rounded-[4px] ${availability[day]?.includes(slot) ? 'bg-[#1D9E75]' : 'bg-[#F5F0E8]'}`}
-                      title={`${day} ${slot}: ${availability[day]?.includes(slot) ? 'Available' : 'Not available'}`}
-                    />
-                  ))}
-                </Fragment>
-              ))}
-            </div>
-            <div className="flex items-center gap-4 mt-3 text-[11px] text-[#8A8480]">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-[3px] bg-[#1D9E75]" /> Available</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-[3px] bg-[#F5F0E8]" /> Not available</span>
+            <h2 className="text-[16px] font-bold text-[#1A1814] mb-3">Availability</h2>
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-[10px] ${worker.isAvailableToday ? 'bg-[#E1F5EE]' : 'bg-[#F5F0E8]'}`}>
+              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${worker.isAvailableToday ? 'bg-[#1D9E75]' : 'bg-[#D0C9BC]'}`} />
+              <div>
+                <p className={`text-[14px] font-semibold ${worker.isAvailableToday ? 'text-[#1D9E75]' : 'text-[#4A4640]'}`}>
+                  {worker.isAvailableToday ? 'Available for work today' : 'Not available today'}
+                </p>
+                <p className="text-[12px] text-[#8A8480] mt-0.5">
+                  {worker.isAvailableToday
+                    ? 'This worker is open to new jobs — contact them now.'
+                    : 'Check back later or contact them to discuss scheduling.'}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -150,13 +151,6 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
             Contact this worker directly. Vastoq verifies their identity — the job and pricing are between you and them.
           </div>
 
-          {/* Reviews */}
-          <div className="mt-6">
-            <h2 className="text-[16px] font-bold text-[#1A1814] mb-3">Reviews</h2>
-            <div className="bg-[#F5F0E8] rounded-[14px] p-5 text-center">
-              <p className="text-[13px] text-[#8A8480]">Reviews visible after unlocking this worker&apos;s contact.</p>
-            </div>
-          </div>
         </div>
 
         {/* RIGHT: unlock card */}

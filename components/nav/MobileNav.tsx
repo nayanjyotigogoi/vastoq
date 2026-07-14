@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import React from 'react'
 import {
   Home,
   Search,
@@ -18,7 +19,7 @@ export default function MobileNav() {
   const pathname = usePathname()
   const { user } = useCurrentUser()
 
-  const tabs = [
+  const tabs: { href: string; icon: React.ElementType; label: string; external?: boolean }[] = [
     {
       href: '/',
       icon: Home,
@@ -35,9 +36,10 @@ export default function MobileNav() {
       label: 'Workers',
     },
     {
-      href: '/messages',
+      href: 'https://wa.me/919707385552',
       icon: MessageSquare,
       label: 'Messages',
+      external: true,
     },
     {
       href: user ? '/profile' : '/login',
@@ -77,36 +79,41 @@ export default function MobileNav() {
       <div className="flex items-stretch" style={{ height: 64 }}>
         {tabs.map((tab) => {
           const isActive =
-            pathname === tab.href ||
-            (
-              tab.href !== '/' &&
-              pathname.startsWith(tab.href)
+            !tab.external && (
+              pathname === tab.href ||
+              (tab.href !== '/' && pathname.startsWith(tab.href))
             )
 
-          return (
+          const cls = cn(
+            'flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[48px] transition-colors',
+            isActive ? 'text-[#1B2B6B]' : 'text-[#8A8480]'
+          )
+
+          const content = (
+            <>
+              <tab.icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
+              <span className="text-[10px] font-semibold leading-none">{tab.label}</span>
+            </>
+          )
+
+          return tab.external ? (
+            <a
+              key={tab.href}
+              href={tab.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cls}
+            >
+              {content}
+            </a>
+          ) : (
             <Link
               key={tab.href}
               href={tab.href}
-              className={cn(
-                'flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[48px] transition-colors',
-                isActive
-                  ? 'text-[#1B2B6B]'
-                  : 'text-[#8A8480]'
-              )}
-              aria-current={
-                isActive ? 'page' : undefined
-              }
+              className={cls}
+              aria-current={isActive ? 'page' : undefined}
             >
-              <tab.icon
-                size={20}
-                strokeWidth={
-                  isActive ? 2.2 : 1.8
-                }
-              />
-
-              <span className="text-[10px] font-semibold leading-none">
-                {tab.label}
-              </span>
+              {content}
             </Link>
           )
         })}

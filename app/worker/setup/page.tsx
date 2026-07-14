@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import TopNav from '@/components/nav/TopNav'
 import Footer from '@/components/nav/Footer'
 import MobileNav from '@/components/nav/MobileNav'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
-import { Loader2, Plus, X, CheckCircle } from 'lucide-react'
+import { Loader2, Plus, X, CheckCircle, Camera, Trash2 } from 'lucide-react'
+import { resolveImageUrl } from '@/lib/utils'
 
 const CATEGORIES = [
   'Electrician', 'Plumber', 'Carpenter', 'Painter', 'Cleaner',
@@ -61,9 +62,15 @@ export default function WorkerSetupPage() {
   const [skillInput,   setSkillInput]   = useState('')
   const [serviceAreas, setServiceAreas] = useState<string[]>([])
   const [areaInput,    setAreaInput]    = useState('')
+  const [photoUrl,     setPhotoUrl]     = useState<string>('')
+  const [workPhotos,   setWorkPhotos]   = useState<string[]>([])
+  const [uploadingProfile, setUploadingProfile] = useState(false)
+  const [uploadingWork,    setUploadingWork]    = useState(false)
   const [saving,       setSaving]       = useState(false)
   const [done,         setDone]         = useState(false)
   const [err,          setErr]          = useState('')
+  const profilePhotoRef = useRef<HTMLInputElement>(null)
+  const workPhotosRef   = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!user) {
@@ -88,6 +95,8 @@ export default function WorkerSetupPage() {
           })
           setSkills(json.data.skills ?? [])
           setServiceAreas(json.data.service_areas ?? [])
+          setPhotoUrl(json.data.photo_url ?? '')
+          setWorkPhotos(json.data.work_photos ?? [])
         }
       } catch (err) {
         console.error('Error fetching worker profile:', err)
@@ -155,6 +164,32 @@ export default function WorkerSetupPage() {
     )
   }
 
+  const uploadProfilePhoto = async (file: File) => {
+    setUploadingProfile(true)
+    try {
+      const fd = new FormData(); fd.append('photo', file)
+      const res = await fetch('/api/uploads/profile-photo', { method: 'POST', credentials: 'include', body: fd })
+      const json = await res.json()
+      if (res.ok) setPhotoUrl(json.data.url)
+      else setErr(json?.error?.message ?? 'Photo upload failed')
+    } catch { setErr('Photo upload failed') }
+    finally { setUploadingProfile(false) }
+  }
+
+  const uploadWorkPhotos = async (files: FileList) => {
+    if (workPhotos.length + files.length > 6) { setErr('Maximum 6 work photos allowed.'); return }
+    setUploadingWork(true)
+    try {
+      const fd = new FormData()
+      Array.from(files).forEach(f => fd.append('photos[]', f))
+      const res = await fetch('/api/uploads/listing-photos', { method: 'POST', credentials: 'include', body: fd })
+      const json = await res.json()
+      if (res.ok) setWorkPhotos(p => [...p, ...(json.data.urls ?? [])])
+      else setErr(json?.error?.message ?? 'Work photo upload failed')
+    } catch { setErr('Work photo upload failed') }
+    finally { setUploadingWork(false) }
+  }
+
   const addSkill = (s: string) => {
     const clean = s.trim()
     if (clean && !skills.includes(clean)) setSkills((p) => [...p, clean])
@@ -190,6 +225,8 @@ export default function WorkerSetupPage() {
           rate_per_day: form.rate_per_day ? Number(form.rate_per_day) : null,
           skills,
           service_areas: serviceAreas.length ? serviceAreas : [form.city.trim()],
+          photo_url: photoUrl || null,
+          work_photos: workPhotos,
         }),
       })
       const json = await res.json()
@@ -242,6 +279,57 @@ export default function WorkerSetupPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Profile Photo */}
+          <div>
+            <label className="label-uppercase text-[#8A8480] block mb-3">Profile Photo</label>
+            <div className="flex items-center gap-4">
+              <div className="relative w-20 h-20 flex-shrink-0">
+                {photoUrl ? (
+                  <img
+                    src={resolveImageUrl(photoUrl)}
+                    alt="Profile"
+                    className="w-20 h-20 rounded-full object-cover border-2 border-[#E5E0D5]"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-[#E8ECF8] flex items-center justify-center border-2 border-dashed border-[#1B2B6B]/30">
+                    <Camera size={22} className="text-[#1B2B6B]/50" />
+                  </div>
+                )}
+                {uploadingProfile && (
+                  <div className="absolute inset-0 rounded-full bg-white/70 flex items-center justify-center">
+                    <Loader2 size={18} className="animate-spin text-[#1B2B6B]" />
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => profilePhotoRef.current?.click()}
+                  disabled={uploadingProfile}
+                  className="px-4 py-2 border border-[#1B2B6B] text-[#1B2B6B] text-[13px] font-semibold rounded-[8px] hover:bg-[#E8ECF8] transition-colors disabled:opacity-50"
+                >
+                  {photoUrl ? 'Change photo' : 'Upload photo'}
+                </button>
+                {photoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setPhotoUrl('')}
+                    className="flex items-center gap-1 text-[12px] text-[#D84040] hover:underline"
+                  >
+                    <Trash2 size={11} /> Remove
+                  </button>
+                )}
+              </div>
+            </div>
+            <input
+              ref={profilePhotoRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={e => { if (e.target.files?.[0]) uploadProfilePhoto(e.target.files[0]) }}
+            />
+          </div>
+
           {/* Category */}
           <div>
             <label className="label-uppercase text-[#8A8480] block mb-2">Category *</label>
@@ -370,6 +458,51 @@ export default function WorkerSetupPage() {
                 <Plus size={15} />
               </button>
             </div>
+          </div>
+
+          {/* Work Photos */}
+          <div>
+            <label className="label-uppercase text-[#8A8480] block mb-1">Work Photos</label>
+            <p className="text-[12px] text-[#8A8480] mb-3">Show clients examples of your work. Up to 6 photos.</p>
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              {workPhotos.map((url, i) => (
+                <div key={i} className="relative aspect-square rounded-[8px] overflow-hidden bg-[#F5F0E8]">
+                  <img src={resolveImageUrl(url)} alt={`Work ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setWorkPhotos(p => p.filter((_, idx) => idx !== i))}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+              {workPhotos.length < 6 && (
+                <button
+                  type="button"
+                  onClick={() => workPhotosRef.current?.click()}
+                  disabled={uploadingWork}
+                  className="aspect-square rounded-[8px] border-2 border-dashed border-[#1B2B6B]/30 flex flex-col items-center justify-center gap-1 hover:bg-[#E8ECF8] transition-colors disabled:opacity-50"
+                >
+                  {uploadingWork ? (
+                    <Loader2 size={18} className="animate-spin text-[#1B2B6B]" />
+                  ) : (
+                    <>
+                      <Plus size={18} className="text-[#1B2B6B]/50" />
+                      <span className="text-[10px] text-[#8A8480]">Add photo</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+            <input
+              ref={workPhotosRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={e => { if (e.target.files?.length) uploadWorkPhotos(e.target.files) }}
+            />
           </div>
 
           {err && (

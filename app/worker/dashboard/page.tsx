@@ -46,6 +46,7 @@ type WorkerProfile = {
   aadhaar_rejection_reason: string | null
   available_today: boolean
   service_areas: string[]
+  work_photos: string[]
 }
 
 type DashboardStats = {
@@ -356,6 +357,38 @@ export default function WorkerDashboard() {
                   <Plus size={16} />
                 </button>
               </div>
+            </div>
+
+            {/* Work Photos */}
+            <div className="bg-white rounded-[16px] border border-[#E5E0D5] p-5 shadow-vastoq-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-[15px] font-bold text-[#1A1814]">Work photos</h2>
+                <Link href="/worker/setup" className="text-[12px] text-[#1B2B6B] font-semibold hover:underline">
+                  {worker.work_photos?.length ? 'Edit' : '+ Add photos'}
+                </Link>
+              </div>
+              {worker.work_photos?.length > 0 ? (
+                <div className="grid grid-cols-3 gap-2">
+                  {worker.work_photos.map((url, i) => (
+                    <a key={i} href={resolveImageUrl(url)} target="_blank" rel="noopener noreferrer"
+                      className="aspect-square rounded-[8px] overflow-hidden block bg-[#F5F0E8]">
+                      <img
+                        src={resolveImageUrl(url)}
+                        alt={`Work photo ${i + 1}`}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                      />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 border-2 border-dashed border-[#E5E0D5] rounded-[10px]">
+                  <p className="text-[12px] text-[#8A8480] mb-2">No work photos yet</p>
+                  <Link href="/worker/setup" className="text-[12px] text-[#1B2B6B] font-semibold hover:underline">
+                    Upload from profile setup →
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* Reviews */}

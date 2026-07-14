@@ -8,7 +8,7 @@ function toWorker(w: any) {
     id:             w.id,
     userId:         w.user_id,
     name:           w.name,
-    phone:          w.phone,
+    phone:          w.phone ?? null,
     category:       w.category,
     skills:         w.skills ?? [],
     bio:            w.bio,
@@ -16,11 +16,13 @@ function toWorker(w: any) {
     locality:       w.locality,
     ratePerDay:     w.rate_per_day,
     photoUrl:       w.photo_url ?? null,
+    workPhotos:     w.work_photos ?? [],
     rating:         w.rating,
     reviewCount:    w.review_count,
     viewCount:      w.view_count,
     isVerified:     !!w.is_verified,
     isActive:       !!w.is_active,
+    isUnlocked:     !!w.is_unlocked,
     availableToday: !!w.available_today,
     serviceAreas:   w.service_areas ?? [],
     aadhaarStatus:        w.aadhaar_status,
@@ -35,6 +37,9 @@ function toWorker(w: any) {
 // GET /api/workers — public list, proxied to backend
 export async function GET(req: NextRequest) {
   try {
+    const guard = await requireAuth(req)
+    const userId = guard instanceof NextResponse ? undefined : guard.session.userId
+
     const sp = req.nextUrl.searchParams
     const filters = {
       search         : sp.get('search')          || undefined,
@@ -45,9 +50,9 @@ export async function GET(req: NextRequest) {
       page    : sp.get('page')     ? Number(sp.get('page'))     : undefined,
       per_page: sp.get('per_page') ? Number(sp.get('per_page')) : undefined,
       limit   : sp.get('limit')    ? Number(sp.get('limit'))    : undefined,
+      ...(userId ? { user_id: userId } : {}),
     }
     const data = await listWorkers(filters)
-    // Laravel shape: { success, data: { data: [...], total, ... } }
     const pagination = data?.data ?? {}
     const workers = (pagination?.data ?? []).map(toWorker)
     return ok({ ...pagination, data: workers })

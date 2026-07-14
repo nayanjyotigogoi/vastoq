@@ -31,6 +31,7 @@ async function fetchWorker(id: string): Promise<Worker | null> {
       jobsCompleted   : w.jobs_completed ?? 0,
       isVerified      : w.is_verified ?? false,
       isAvailableToday: w.available_today ?? false,
+      workPhotos      : Array.isArray(w.work_photos) ? w.work_photos : [],
     }
   } catch {
     return null
