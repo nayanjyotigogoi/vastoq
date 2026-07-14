@@ -85,12 +85,12 @@ export default function ListingCarouselCard({ listing }: { listing: Listing }) {
             src={photo}
             alt={listing.title}
             className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-500"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden') }}
           />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#E8ECF8] to-[#D0D8F0] flex items-center justify-center">
-            <MapPin size={22} className="text-[#1B2B6B]/25" />
-          </div>
-        )}
+        ) : null}
+        <div className={`w-full h-full bg-gradient-to-br from-[#E8ECF8] to-[#D0D8F0] flex items-center justify-center ${photo ? 'hidden' : ''}`}>
+          <MapPin size={22} className="text-[#1B2B6B]/25" />
+        </div>
 
         {/* Bottom gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none" />
