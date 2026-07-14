@@ -39,8 +39,8 @@ function normalise(w: any): Worker {
     jobsCompleted   : w.jobsCompleted ?? w.jobs_completed ?? 0,
     isVerified      : w.isVerified ?? w.is_verified ?? false,
     isAvailableToday: w.availableToday ?? w.available_today ?? false,
-    isUnlocked      : false,
-    phone           : undefined,
+    isUnlocked      : w.isUnlocked ?? w.is_unlocked ?? false,
+    phone           : w.phone ?? undefined,
     workPhotos      : Array.isArray(w.workPhotos ?? w.work_photos) ? (w.workPhotos ?? w.work_photos) : [],
   }
 }

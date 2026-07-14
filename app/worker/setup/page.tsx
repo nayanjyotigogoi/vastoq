@@ -181,7 +181,7 @@ export default function WorkerSetupPage() {
     setUploadingWork(true)
     try {
       const fd = new FormData()
-      Array.from(files).forEach(f => fd.append('photos[]', f))
+      Array.from(files).forEach(f => fd.append('photos', f))
       const res = await fetch('/api/uploads/listing-photos', { method: 'POST', credentials: 'include', body: fd })
       const json = await res.json()
       if (res.ok) setWorkPhotos(p => [...p, ...(json.data.urls ?? [])])
