@@ -219,18 +219,22 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
                   src={resolveImageUrl(listing.photos[activePhoto])}
                   alt={`${listing.title} — photo ${activePhoto + 1}`}
                   className="w-full object-contain max-h-[480px]"
+                  onError={(e) => {
+                    const el = e.target as HTMLImageElement
+                    el.style.display = 'none'
+                    el.parentElement?.querySelector('.photo-fallback')?.classList.remove('hidden')
+                  }}
                 />
-              ) : (
-                <div className="w-full flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-[#E8ECF8] to-[#F5F0E8] py-20">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="opacity-30">
-                    <rect x="3" y="5" width="18" height="14" rx="3" stroke="#1B2B6B" strokeWidth="1.5"/>
-                    <circle cx="8.5" cy="10.5" r="1.5" stroke="#1B2B6B" strokeWidth="1.5"/>
-                    <path d="M3 15l4-4 3 3 3-4 5 6" stroke="#1B2B6B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  <p className="text-[13px] font-semibold text-[#1B2B6B]/40">No photos uploaded yet</p>
-                  <p className="text-[11px] text-[#8A8480]">Contact the owner for more details</p>
-                </div>
-              )}
+              ) : null}
+              <div className={`photo-fallback w-full flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-[#E8ECF8] to-[#F5F0E8] py-20 ${listing.photos.length > 0 ? 'hidden' : ''}`}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="opacity-30">
+                  <rect x="3" y="5" width="18" height="14" rx="3" stroke="#1B2B6B" strokeWidth="1.5"/>
+                  <circle cx="8.5" cy="10.5" r="1.5" stroke="#1B2B6B" strokeWidth="1.5"/>
+                  <path d="M3 15l4-4 3 3 3-4 5 6" stroke="#1B2B6B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <p className="text-[13px] font-semibold text-[#1B2B6B]/40">No photos uploaded yet</p>
+                <p className="text-[11px] text-[#8A8480]">Contact the owner for more details</p>
+              </div>
               <div className="absolute top-3 left-3 flex gap-1.5">
                 {listing.isVerified && <VastoqBadge variant="verified" />}
                 {listing.isPopular && <VastoqBadge variant="popular" />}
@@ -280,7 +284,7 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
                     aria-label={`View photo ${i + 1}`}
                     aria-pressed={i === activePhoto}
                   >
-                    <img src={resolveImageUrl(photo)} alt="" className="w-full h-full object-cover" />
+                    <img src={resolveImageUrl(photo)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display='none' }} />
                   </button>
                 ))}
               </div>
