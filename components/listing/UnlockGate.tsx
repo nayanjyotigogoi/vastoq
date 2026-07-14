@@ -593,15 +593,13 @@ export default function UnlockGate({
               Best Value
             </div>
             
-            <div className="flex items-center gap-1.5 mb-1">
-              <Zap size={14} className="text-[#1B2B6B]" />
-              <h3 className="text-[14px] font-extrabold text-[#1B2B6B]">100 Vastoq Points</h3>
-              <PointsInfoModal />
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <Zap size={14} className="text-[#1B2B6B]" />
+                <h3 className="text-[14px] font-extrabold text-[#1B2B6B]">100 Vastoq Points</h3>
+              </div>
+              <PointsInfoModal trigger="button" className="text-[11px]" />
             </div>
-            <p className="text-[11.5px] text-[#4A4640] font-medium leading-snug">
-              Unlock <span className="font-bold text-[#1B2B6B]">5 listings</span> (20 pts each) or <span className="font-bold text-[#1B2B6B]">10 workers</span> (10 pts each) — your choice.
-              Includes <span className="text-[#179068] font-bold">Rental Agreement Guarantee</span>.
-            </p>
 
             <div className="mt-3 flex items-center justify-between gap-4">
               <span className="text-[16px] font-black text-[#1A1814]">₹99 <span className="text-[11px] font-normal text-[#8A8480] line-through">₹100</span></span>
@@ -632,7 +630,7 @@ export default function UnlockGate({
 
         {/* CTA — tenants only */}
         {(!user || user.role === 'tenant') && (
-        <div className="px-5 pb-6 pt-3">
+        <div className="px-5 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
           <button
             onClick={handleUnlock}
             disabled={!canUnlock || unlocking || paymentState !== 'idle'}

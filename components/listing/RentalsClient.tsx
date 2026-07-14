@@ -35,9 +35,9 @@ function normalise(l: any): Listing {
     bhk:
       l.bhk_type === '1rk'
         ? 1
-        : parseInt(
-            l.bhk_type.replace('bhk', '')
-          ) || undefined,
+        : l.bhk_type
+        ? parseInt(l.bhk_type.replace('bhk', '')) || undefined
+        : undefined,
 
     furnishing:
       l.furnishing === 'fully_furnished'
@@ -47,15 +47,14 @@ function normalise(l: any): Listing {
         : 'Unfurnished',
 
     propertyType:
-      l.property_type === 'pg'
-        ? 'PG'
-        : l.property_type === 'room'
-        ? 'Room'
-        : l.property_type === 'shared_room'
-        ? 'Shared Room'
-        : l.property_type === 'house'
-        ? 'House'
-        : 'Flat',
+      l.property_type === 'pg'          ? 'PG'
+      : l.property_type === 'room'      ? 'Room'
+      : l.property_type === 'shared_room' ? 'Shared Room'
+      : l.property_type === 'house'     ? 'House'
+      : l.property_type === 'office'    ? 'Office'
+      : l.property_type === 'shop'      ? 'Shop'
+      : l.property_type === 'warehouse' ? 'Warehouse'
+      : 'Flat',
 
     photos: l.photos ?? [],
 
@@ -397,7 +396,7 @@ export default function RentalsClient() {
       {/* Residential / Commercial tab */}
       <div className="flex gap-1 p-1 bg-[#F0EBE3] rounded-[12px] mb-6 w-fit">
         <button
-          onClick={() => { setListingClass('residential'); setSelectedTypes([]) }}
+          onClick={() => { setListingClass('residential'); setSelectedTypes([]); setSelectedBhk([]) }}
           className={`flex items-center gap-2 px-5 py-2 rounded-[10px] text-[13px] font-bold transition-all ${listingClass === 'residential' ? 'bg-white text-[#1B2B6B] shadow-sm' : 'text-[#6F6A63] hover:text-[#1A1814]'}`}
         >
           <Home size={14} /> Residential

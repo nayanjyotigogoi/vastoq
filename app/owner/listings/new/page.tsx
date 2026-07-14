@@ -8,6 +8,7 @@ import { Upload, Check, Loader2, ChevronLeft, Navigation } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { createListing } from '@/lib/services/listings.service'
+import { resolveImageUrl } from '@/lib/utils'
 
 type FormState = {
   title: string
@@ -637,7 +638,7 @@ export default function NewListingPage() {
                     <div className="grid grid-cols-3 gap-3 mt-5">
                       {photoUrls.map((url) => (
                         <div key={url} className="relative group rounded-[10px] overflow-hidden border border-[#E5E0D5] aspect-square">
-                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <img src={resolveImageUrl(url)} alt="" className="w-full h-full object-cover" />
                           <button
                             type="button"
                             onClick={() => removePhoto(url)}

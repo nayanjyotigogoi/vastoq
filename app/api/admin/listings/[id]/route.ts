@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { ok, error } from "@/lib/api/response";
 import { requireRole } from "@/lib/auth";
-import { AdminListingActionSchema } from "@/lib/api/validators";
-import { adminListingAction } from "@/lib/services/admin.service";
+
+const BACKEND = process.env.NEXT_PUBLIC_API_URL;
 
 export async function PATCH(
   req: NextRequest,
@@ -13,14 +13,18 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
-  const parsed = AdminListingActionSchema.safeParse(body);
 
-  if (!parsed.success) {
-    return error(parsed.error.issues[0].message, 422);
+  try {
+    const res = await fetch(`${BACKEND}/admin/listings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const json = await res.json();
+    if (!res.ok) return error(json?.message ?? "Action failed", res.status);
+    return ok(json.data ?? json);
+  } catch (e: any) {
+    return error(e?.message ?? "Failed to apply action", 500);
   }
-
-  const result = adminListingAction(id, parsed.data.action, parsed.data.reason);
-  if ("error" in result) return error(result.error, 404);
-
-  return ok(result);
 }

@@ -11,20 +11,36 @@ import { Loader2, Plus, X, CheckCircle } from 'lucide-react'
 const CATEGORIES = [
   'Electrician', 'Plumber', 'Carpenter', 'Painter', 'Cleaner',
   'AC Technician', 'Driver', 'Mason', 'Cook', 'Security Guard',
-  'Gardener', 'Welder', 'Mechanic', 'Other',
+  'Gardener', 'Welder', 'Mechanic',
+  'Photographer', 'Videographer', 'Makeup Artist', 'Mehendi Artist',
+  'Artist / Illustrator', 'Musician', 'Event Decorator', 'Catering Staff',
+  'Tutor / Teacher', 'Yoga Instructor', 'Fitness Trainer', 'Tailor',
+  'Other',
 ]
 
 const COMMON_SKILLS: Record<string, string[]> = {
-  Electrician  : ['Wiring', 'MCB Installation', 'Fan Fitting', 'AC Wiring', 'Inverter Setup'],
-  Plumber      : ['Pipe Fitting', 'Leak Repair', 'Bathroom Fitting', 'Motor Fitting', 'Drain Cleaning'],
-  Carpenter    : ['Furniture Making', 'Door Fitting', 'Modular Kitchen', 'Wood Polish', 'Plywood Work'],
-  Painter      : ['Interior Paint', 'Exterior Paint', 'Texture Paint', 'Waterproofing', 'Wall Putty'],
-  Cleaner      : ['Deep Cleaning', 'Kitchen Cleaning', 'Bathroom Scrubbing', 'Sofa Cleaning', 'Office Cleaning'],
-  'AC Technician': ['AC Installation', 'Gas Refilling', 'AC Service', 'Split AC Repair'],
-  Driver       : ['Car Driving', 'LMV License', 'City Routes', 'Long Distance'],
-  Mason        : ['Brick Work', 'Tile Fixing', 'Plastering', 'Waterproofing'],
-  Cook         : ['Assamese Cuisine', 'Bengali Cuisine', 'Tiffin Service', 'Party Catering'],
-  'Security Guard': ['Night Duty', 'CCTV Monitoring', 'Gate Management', 'First Aid'],
+  Electrician       : ['Wiring', 'MCB Installation', 'Fan Fitting', 'AC Wiring', 'Inverter Setup'],
+  Plumber           : ['Pipe Fitting', 'Leak Repair', 'Bathroom Fitting', 'Motor Fitting', 'Drain Cleaning'],
+  Carpenter         : ['Furniture Making', 'Door Fitting', 'Modular Kitchen', 'Wood Polish', 'Plywood Work'],
+  Painter           : ['Interior Paint', 'Exterior Paint', 'Texture Paint', 'Waterproofing', 'Wall Putty'],
+  Cleaner           : ['Deep Cleaning', 'Kitchen Cleaning', 'Bathroom Scrubbing', 'Sofa Cleaning', 'Office Cleaning'],
+  'AC Technician'   : ['AC Installation', 'Gas Refilling', 'AC Service', 'Split AC Repair'],
+  Driver            : ['Car Driving', 'LMV License', 'City Routes', 'Long Distance'],
+  Mason             : ['Brick Work', 'Tile Fixing', 'Plastering', 'Waterproofing'],
+  Cook              : ['Assamese Cuisine', 'Bengali Cuisine', 'Tiffin Service', 'Party Catering'],
+  'Security Guard'  : ['Night Duty', 'CCTV Monitoring', 'Gate Management', 'First Aid'],
+  Photographer      : ['Wedding Photography', 'Portrait', 'Product Photography', 'Event Coverage', 'Photo Editing'],
+  Videographer      : ['Wedding Videography', 'Reels & Shorts', 'Event Coverage', 'Video Editing', 'Drone Shots'],
+  'Makeup Artist'   : ['Bridal Makeup', 'Party Makeup', 'Airbrush Makeup', 'Hair Styling', 'Saree Draping'],
+  'Mehendi Artist'  : ['Bridal Mehendi', 'Arabic Mehendi', 'Back Hand Designs', 'Feet Mehendi'],
+  'Artist / Illustrator': ['Portrait Drawing', 'Wall Art', 'Logo Design', 'Digital Art', 'Rangoli'],
+  Musician          : ['Singing', 'Guitar', 'Tabla', 'Keyboard', 'Live Performance'],
+  'Event Decorator' : ['Balloon Decoration', 'Floral Decoration', 'Stage Setup', 'Theme Decoration'],
+  'Catering Staff'  : ['Food Service', 'Buffet Setup', 'Wedding Catering', 'Corporate Events'],
+  'Tutor / Teacher' : ['Maths', 'Science', 'English', 'Competitive Exams', 'Music Lessons'],
+  'Yoga Instructor' : ['Hatha Yoga', 'Power Yoga', 'Meditation', 'Pranayama', 'Online Sessions'],
+  'Fitness Trainer' : ['Weight Training', 'Cardio', 'Home Workouts', 'Diet Planning', 'Zumba'],
+  Tailor            : ['Dress Stitching', 'Blouse Stitching', 'Alteration', 'Embroidery', 'Lehenga Work'],
 }
 
 export default function WorkerSetupPage() {
@@ -99,6 +115,41 @@ export default function WorkerSetupPage() {
           <a href="/login" className="px-5 py-2.5 bg-[#1B2B6B] text-white text-[14px] font-bold rounded-[10px]">
             Login / Sign up
           </a>
+        </div>
+      </div>
+    )
+  }
+
+  if (user.role === 'tenant' || user.role === 'owner') {
+    return (
+      <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white border border-[#E5E0D5] rounded-[16px] p-8 text-center shadow-sm">
+          <div className="w-14 h-14 rounded-full bg-[#FFF3CD] flex items-center justify-center mx-auto mb-5">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <h2 className="text-[20px] font-bold text-[#1A1814] mb-3">Account already in use</h2>
+          <p className="text-[14px] text-[#4A4640] leading-relaxed mb-2">
+            Your email <span className="font-semibold text-[#1A1814]">{user.email}</span> and phone number are already registered as a <span className="font-semibold">{user.role === 'owner' ? 'Property Owner' : 'Tenant'}</span>.
+          </p>
+          <p className="text-[14px] text-[#4A4640] leading-relaxed mb-6">
+            Each role requires a separate account. Please sign up with a different email and phone number to register as a worker.
+          </p>
+          <div className="flex flex-col gap-3">
+            <a
+              href="/login?tab=signup"
+              className="px-5 py-2.5 bg-[#1B2B6B] text-white text-[14px] font-bold rounded-[10px] hover:bg-[#2D3E8C] transition-colors"
+            >
+              Create a new worker account
+            </a>
+            <a
+              href="/workers"
+              className="px-5 py-2.5 bg-[#F5F0E8] text-[#4A4640] text-[14px] font-semibold rounded-[10px] hover:bg-[#EDE8E0] transition-colors"
+            >
+              Back to Workers
+            </a>
+          </div>
         </div>
       </div>
     )

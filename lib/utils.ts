@@ -13,6 +13,8 @@ export function cn(...inputs: ClassValue[]) {
 export function resolveImageUrl(path: string | null | undefined): string {
   if (!path) return ''
   if (path.startsWith('http://') || path.startsWith('https://')) return path
+  const cleanPath = path.replace(/^\//, '')
   const base = (process.env.NEXT_PUBLIC_STORAGE_URL ?? '').replace(/\/$/, '')
-  return `${base}/${path}`
+  // Fall back to the /storage/ rewrite if the env var isn't baked in
+  return base ? `${base}/${cleanPath}` : `/storage/${cleanPath}`
 }

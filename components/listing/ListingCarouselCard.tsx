@@ -120,12 +120,12 @@ export default function ListingCarouselCard({ listing }: { listing: Listing }) {
           <Heart size={12} className={saved ? 'fill-[#D84040] stroke-[#D84040]' : 'stroke-[#4A4640]'} />
         </button>
 
-        {/* Boosted + Verified badges — top left, stacked */}
+        {/* Featured + Verified badges — top left, stacked */}
         {(listing.isBoosted || listing.isVerified) && (
           <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
             {listing.isBoosted && (
               <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#E8A020] text-white text-[9px] font-bold shadow-sm">
-                <Zap size={8} strokeWidth={2.5} /> Boosted
+                <Zap size={8} strokeWidth={2.5} /> Featured
               </span>
             )}
             {listing.isVerified && (
