@@ -184,7 +184,12 @@ export default function WorkerSetupPage() {
       Array.from(files).forEach(f => fd.append('photos', f))
       const res = await fetch('/api/uploads/listing-photos', { method: 'POST', credentials: 'include', body: fd })
       const json = await res.json()
-      if (res.ok) setWorkPhotos(p => [...p, ...(json.data.urls ?? [])])
+      if (res.ok) {
+        const full = (json.data.urls ?? []).map((u: string) =>
+          u.startsWith('http') ? u : resolveImageUrl(u.replace(/^storage\//, ''))
+        )
+        setWorkPhotos(p => [...p, ...full])
+      }
       else setErr(json?.error?.message ?? 'Work photo upload failed')
     } catch { setErr('Work photo upload failed') }
     finally { setUploadingWork(false) }
