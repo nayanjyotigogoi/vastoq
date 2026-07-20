@@ -4,13 +4,14 @@ import TopNav from '@/components/nav/TopNav'
 import MobileNav from '@/components/nav/MobileNav'
 import Footer from '@/components/nav/Footer'
 import Link from 'next/link'
-import { Heart, Lock, MessageSquare, ChevronRight, Search, HardHat, Zap, Loader2 } from 'lucide-react'
+import { Heart, Lock, MessageSquare, ChevronRight, Search, HardHat, Zap, Loader2, AlertTriangle } from 'lucide-react'
 import { resolveImageUrl } from '@/lib/utils'
 import ListingCard from '@/components/listing/ListingCard'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useEffect, useState } from 'react'
 import PointsInfoModal from '@/components/ui/PointsInfoModal'
 import { loadRazorpay } from '@/lib/razorpay'
+import ReportIssueModal from '@/components/listing/ReportIssueModal'
 
 // const MOCK_UNLOCKED = [
 //   {
@@ -69,6 +70,11 @@ export default function TenantDashboard() {
   const [savedListings,  setSavedListings]  = useState<any[]>([])
   const [pkgState, setPkgState] = useState<PkgState>('idle')
   const [pkgError, setPkgError] = useState<string | null>(null)
+  const [reportModal, setReportModal] = useState<{
+    type: 'listing' | 'worker'
+    targetId: number
+    subjectName: string
+  } | null>(null)
 
   const handleBuyPackage = async () => {
     setPkgState('creating_order')
@@ -321,39 +327,58 @@ export default function TenantDashboard() {
             {dashboardData?.unlocks?.map(
               (unlock: any) =>
                 unlock.listing ? (
-                  <Link
+                  <div
                     key={unlock.id}
-                    href={`/rentals/${unlock.listing.id}`}
-                    className="bg-white rounded-[14px] border border-[#E5E0D5] p-4 flex items-start gap-4 shadow-vastoq-sm hover:shadow-vastoq-md hover:-translate-y-0.5 transition-all block"
+                    className="bg-white rounded-[14px] border border-[#E5E0D5] shadow-vastoq-sm hover:shadow-vastoq-md hover:-translate-y-0.5 transition-all"
                   >
-                    {unlock.listing?.photos?.[0] && (
-                      <img
-                        src={resolveImageUrl(unlock.listing.photos[0])}
-                        alt={unlock.listing.title}
-                        className="w-16 h-14 object-cover rounded-[10px] flex-shrink-0"
-                      />
-                    )}
+                    <Link
+                      href={`/rentals/${unlock.listing.id}`}
+                      className="p-4 flex items-start gap-4 block"
+                    >
+                      {unlock.listing?.photos?.[0] && (
+                        <img
+                          src={resolveImageUrl(unlock.listing.photos[0])}
+                          alt={unlock.listing.title}
+                          className="w-16 h-14 object-cover rounded-[10px] flex-shrink-0"
+                        />
+                      )}
 
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-semibold text-[#1A1814] truncate">
-                        {unlock.listing?.title}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-semibold text-[#1A1814] truncate">
+                          {unlock.listing?.title}
+                        </p>
 
-                      <p className="text-[12px] text-[#4A4640]">
-                        {unlock.listing?.locality}
-                      </p>
+                        <p className="text-[12px] text-[#4A4640]">
+                          {unlock.listing?.locality}
+                        </p>
 
-                      <div className="flex items-center gap-3 mt-2 flex-wrap">
-                        <span className="text-[13px] font-bold text-[#1D9E75]">
-                          +91 {unlock.listing?.owner?.phone}
-                        </span>
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
+                          <span className="text-[13px] font-bold text-[#1D9E75]">
+                            +91 {unlock.listing?.owner?.phone}
+                          </span>
 
-                        <span className="text-[11px] text-[#8A8480]">
-                          {unlock.listing?.owner?.name} · Unlocked
-                        </span>
+                          <span className="text-[11px] text-[#8A8480]">
+                            {unlock.listing?.owner?.name} · Unlocked
+                          </span>
+                        </div>
                       </div>
+                    </Link>
+
+                    {/* Report button */}
+                    <div className="px-4 pb-3">
+                      <button
+                        onClick={() => setReportModal({
+                          type: 'listing',
+                          targetId: Number(unlock.listing.id),
+                          subjectName: unlock.listing.title ?? 'This listing',
+                        })}
+                        className="w-full flex items-center justify-center gap-1.5 py-2 border border-[#D84040]/35 text-[#D84040] text-[11px] font-semibold rounded-[8px] hover:bg-[#FFF4F4] hover:border-[#D84040] transition-colors"
+                      >
+                        <AlertTriangle size={12} />
+                        Report an Issue with this Contact
+                      </button>
                     </div>
-                  </Link>
+                  </div>
                 ) : null
             )}
 
@@ -389,46 +414,63 @@ export default function TenantDashboard() {
               unlock.worker ? (
                 <div
                   key={unlock.id}
-                  className="bg-white rounded-[14px] border border-[#E5E0D5] p-4 flex items-start gap-4 shadow-vastoq-sm"
+                  className="bg-white rounded-[14px] border border-[#E5E0D5] shadow-vastoq-sm"
                 >
-                  {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-[#E8ECF8] flex items-center justify-center flex-shrink-0">
-                    <span className="text-[16px] font-bold text-[#1B2B6B]">
-                      {unlock.worker.name?.[0] ?? '?'}
-                    </span>
+                  <div className="p-4 flex items-start gap-4">
+                    {/* Avatar */}
+                    <div className="w-12 h-12 rounded-full bg-[#E8ECF8] flex items-center justify-center flex-shrink-0">
+                      <span className="text-[16px] font-bold text-[#1B2B6B]">
+                        {unlock.worker.name?.[0] ?? '?'}
+                      </span>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-[14px] font-semibold text-[#1A1814]">{unlock.worker.name}</p>
+                        {unlock.worker.is_verified && (
+                          <span className="text-[10px] font-bold text-[#1D9E75] bg-[#E1F5EE] px-2 py-0.5 rounded-full">Verified</span>
+                        )}
+                      </div>
+
+                      <p className="text-[12px] text-[#4A4640]">
+                        {unlock.worker.category}{unlock.worker.locality ? ` · ${unlock.worker.locality}` : ''}
+                      </p>
+
+                      <div className="flex items-center gap-3 mt-2 flex-wrap">
+                        <span className="text-[13px] font-bold text-[#1D9E75]">
+                          +91 {unlock.worker.phone}
+                        </span>
+                        <a
+                          href={`https://wa.me/91${(unlock.worker.phone ?? '').replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-semibold text-white bg-[#25D366] px-2.5 py-1 rounded-full hover:bg-[#1aac52] transition-colors"
+                        >
+                          WhatsApp
+                        </a>
+                        <Link
+                          href={`/workers/${unlock.worker.id}`}
+                          className="text-[11px] text-[#1B2B6B] font-semibold hover:underline"
+                        >
+                          View profile →
+                        </Link>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-[14px] font-semibold text-[#1A1814]">{unlock.worker.name}</p>
-                      {unlock.worker.is_verified && (
-                        <span className="text-[10px] font-bold text-[#1D9E75] bg-[#E1F5EE] px-2 py-0.5 rounded-full">Verified</span>
-                      )}
-                    </div>
-
-                    <p className="text-[12px] text-[#4A4640]">
-                      {unlock.worker.category}{unlock.worker.locality ? ` · ${unlock.worker.locality}` : ''}
-                    </p>
-
-                    <div className="flex items-center gap-3 mt-2 flex-wrap">
-                      <span className="text-[13px] font-bold text-[#1D9E75]">
-                        +91 {unlock.worker.phone}
-                      </span>
-                      <a
-                        href={`https://wa.me/91${(unlock.worker.phone ?? '').replace(/\D/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] font-semibold text-white bg-[#25D366] px-2.5 py-1 rounded-full hover:bg-[#1aac52] transition-colors"
-                      >
-                        WhatsApp
-                      </a>
-                      <Link
-                        href={`/workers/${unlock.worker.id}`}
-                        className="text-[11px] text-[#1B2B6B] font-semibold hover:underline"
-                      >
-                        View profile →
-                      </Link>
-                    </div>
+                  {/* Report button */}
+                  <div className="px-4 pb-3">
+                    <button
+                      onClick={() => setReportModal({
+                        type: 'worker',
+                        targetId: Number(unlock.worker.id),
+                        subjectName: unlock.worker.name ?? 'This worker',
+                      })}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 border border-[#D84040]/35 text-[#D84040] text-[11px] font-semibold rounded-[8px] hover:bg-[#FFF4F4] hover:border-[#D84040] transition-colors"
+                    >
+                      <AlertTriangle size={12} />
+                      Report an Issue with this Contact
+                    </button>
                   </div>
                 </div>
               ) : null
@@ -566,6 +608,16 @@ export default function TenantDashboard() {
         className="h-16 lg:hidden"
         aria-hidden="true"
       />
+
+      {/* Report Issue Modal — shared across listing + worker unlock cards */}
+      {reportModal && (
+        <ReportIssueModal
+          type={reportModal.type}
+          targetId={reportModal.targetId}
+          subjectName={reportModal.subjectName}
+          onClose={() => setReportModal(null)}
+        />
+      )}
     </div>
   )
 }

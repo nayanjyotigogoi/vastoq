@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Star, MapPin, Lock, Copy, Check, Loader2 } from 'lucide-react'
+import { Star, MapPin, Lock, Copy, Check, Loader2, AlertTriangle } from 'lucide-react'
 import { VerifiedAvatar, Chip } from '@/components/ui/vastoq-badge'
 import UnlockGate from '@/components/listing/UnlockGate'
+import ReportIssueModal from '@/components/listing/ReportIssueModal'
 import type { Worker } from './WorkerCard'
 import { usePrices } from '@/hooks/usePrices'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
@@ -21,6 +22,7 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
   const [revealedPhone, setRevealedPhone] = useState<string | undefined>(worker.phone)
   const [copied,        setCopied]        = useState(false)
   const [statusLoading, setStatusLoading] = useState(true)
+  const [showReport,    setShowReport]    = useState(false)
   // Guard: redirect to login if not authenticated when trying to unlock
   const openUnlock = () => {
     if (!user) {
@@ -188,6 +190,14 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
                 >
                   Open in WhatsApp
                 </a>
+                {/* Report issue button */}
+                <button
+                  onClick={() => setShowReport(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 border border-[#D84040]/40 text-[#D84040] text-[13px] font-semibold rounded-[10px] hover:bg-[#FFF4F4] hover:border-[#D84040] transition-colors"
+                >
+                  <AlertTriangle size={14} />
+                  Report an Issue with this Contact
+                </button>
               </div>
             ) : (
               <div className="space-y-2.5">
@@ -226,6 +236,16 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
             if (data?.phone) setRevealedPhone(data.phone)
             setShowUnlock(false)
           }}
+        />
+      )}
+
+      {/* Report Issue modal */}
+      {showReport && (
+        <ReportIssueModal
+          type="worker"
+          targetId={Number(worker.id)}
+          subjectName={worker.name}
+          onClose={() => setShowReport(false)}
         />
       )}
     </div>

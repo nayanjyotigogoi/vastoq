@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { MapPin, Heart, Share2, Lock, Phone, MessageSquare, Copy, Check, Wifi, Wind, Zap, Car, Droplets, UtensilsCrossed, ShieldCheck, Layers, FileText, Loader2, X, Send, User } from 'lucide-react'
+import { MapPin, Heart, Share2, Lock, Phone, MessageSquare, Copy, Check, Wifi, Wind, Zap, Car, Droplets, UtensilsCrossed, ShieldCheck, Layers, FileText, Loader2, X, Send, User, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { VastoqBadge, VerifiedAvatar, Chip } from '@/components/ui/vastoq-badge'
 import { resolveImageUrl } from '@/lib/utils'
 import UnlockGate from './UnlockGate'
+import ReportIssueModal from './ReportIssueModal'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { Listing } from './ListingCard'
 import { usePrices } from '@/hooks/usePrices'
@@ -50,6 +51,7 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
   const [showUnlock,  setShowUnlock]  = useState(false)
   const [unlocked,    setUnlocked]    = useState(!listing.isLocked)
   const [copied,      setCopied]      = useState(false)
+  const [showReport,  setShowReport]  = useState(false)
   const [showAgreementForm, setShowAgreementForm] = useState(false)
   const [agreementLoading, setAgreementLoading]   = useState(false)
   const [agreementForm, setAgreementForm] = useState({
@@ -492,6 +494,15 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
                   </a>
                 </div>
 
+                {/* Report listing issue */}
+                <button
+                  onClick={() => setShowReport(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 border border-[#D84040]/40 text-[#D84040] text-[13px] font-semibold rounded-[10px] hover:bg-[#FFF4F4] hover:border-[#D84040] transition-colors"
+                >
+                  <AlertTriangle size={14} />
+                  Report an Issue with this Contact
+                </button>
+
                 {/* Rental agreement — only for the listing's own owner */}
                 {user?.userId && listing.ownerId && user.userId === listing.ownerId && (
                   <button
@@ -588,6 +599,16 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
           subjectLocality={listing.locality}
           onClose={() => setShowUnlock(false)}
           onSuccess={handleUnlockSuccess}
+        />
+      )}
+
+      {/* Report Issue modal */}
+      {showReport && (
+        <ReportIssueModal
+          type="listing"
+          targetId={listing.id}
+          subjectName={listing.title}
+          onClose={() => setShowReport(false)}
         />
       )}
     </div>
