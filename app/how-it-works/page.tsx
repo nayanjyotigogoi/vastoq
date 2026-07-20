@@ -71,7 +71,7 @@ function StepList({ steps, color }: { steps: StepItem[]; color: 'indigo' | 'gree
 
 const FAQS = [
   { q: 'Is Vastoq only for Guwahati?', a: 'Currently yes — we are focused on building the best rental and worker discovery platform for Guwahati. More Assam cities are coming soon.' },
-  { q: 'How does the Vastoq Points system work?', a: 'Instead of per-item payments, Vastoq uses a unified Points wallet. You buy a pack of 100 points for ₹99. Unlocking a rental property details costs 20 points (giving you up to 5 properties per pack). Unlocking a worker\'s profile costs 10 points (giving you up to 10 workers per pack).' },
+  { q: 'How does the Vastoq Points system work?', a: 'Vastoq uses a unified Points wallet. You can buy a pack of 60 points for ₹59 and spend them at a discount: 20 points to unlock a rental property (~₹19.6 effective) or 10 points to unlock a worker profile (~₹9.8 effective). Alternatively, pay directly per unlock: ₹25 for a property, ₹15 for a worker — no wallet needed.' },
   { q: 'How are workers verified?', a: 'Workers submit their Aadhaar number. Our team verifies the Aadhaar data against the UIDAI database. Verified workers get a green badge on their profile.' },
   { q: 'Can I list more than one property?', a: 'Yes. Owner accounts can post unlimited listings. Each listing is reviewed within 24 hours before going live.' },
   { q: 'What happens if a tenant unlocks but the property is already rented?', a: 'Owners are expected to mark listings as rented. If you unlocked a listing that turned out to be unavailable, raise a support ticket and we will credit back your points.' },
@@ -168,7 +168,7 @@ export default function HowItWorksPage() {
             <h2 className="text-[26px] font-extrabold text-white mb-3">Simple. Transparent. Affordable.</h2>
             <div className="grid sm:grid-cols-3 gap-4 mt-8 text-left">
               {[
-                { who: 'Tenants / Users', price: '₹99 pack', what: 'Get 100 Vastoq Points. Unlocks cost 20 points for property owners and 10 points for worker contact details.' },
+                { who: 'Tenants / Users', price: '₹59 pack', what: 'Get 60 Vastoq Points. Spend 20 pts to unlock a property (~₹19.6) or 10 pts for a worker (~₹9.8). Or pay directly: ₹25/property · ₹15/worker.' },
                 { who: 'Owners', price: 'Free to list', what: 'List property free. Reach verified tenants directly with zero broker commissions.' },
                 { who: 'Workers', price: 'Free profile', what: 'Verify Aadhaar and get discovered. Keep 100% of the wages you negotiate.' },
               ].map((p) => (

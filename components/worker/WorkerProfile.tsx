@@ -203,7 +203,7 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
                     <span>Vastoq Points System</span>
                     <PointsInfoModal />
                   </div>
-                  Buy 100 points for ₹99. Deduct 10 points to unlock worker details (up to 10 workers).
+                  Buy 60 points for ₹59 and unlock up to 6 workers (10 pts each). Or pay ₹15 directly for this one worker — no wallet needed.
                 </div>
                 <p className="text-[11px] text-[#8A8480] text-center">
                   Pay once, get direct contact. No middleman.

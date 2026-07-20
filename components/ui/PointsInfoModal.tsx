@@ -72,10 +72,10 @@ export default function PointsInfoModal({ trigger = 'icon', className }: PointsI
                 <div className="w-8 h-8 rounded-full bg-[#1B2B6B] flex items-center justify-center flex-shrink-0 mt-0.5">
                   <ShoppingBag size={14} className="text-white" />
                 </div>
-                <div>
-                  <p className="text-[13px] font-bold text-[#1A1814]">₹99 → 100 Vastoq Points</p>
+              <div>
+                  <p className="text-[13px] font-bold text-[#1A1814]">₹59 → 60 Vastoq Points</p>
                   <p className="text-[11.5px] text-[#4A4640] mt-0.5 leading-relaxed">
-                    Buy one pack and you get 100 points credited to your wallet instantly.
+                    Buy the pack and get 60 points credited instantly — cheaper per unlock vs paying directly.
                   </p>
                 </div>
               </div>
@@ -93,9 +93,10 @@ export default function PointsInfoModal({ trigger = 'icon', className }: PointsI
                       <p className="text-[11px] text-[#4A4640]">Get owner's phone + exact address</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <span className="text-[13px] font-black text-[#1B2B6B]">20 pts</span>
-                      <p className="text-[10px] text-[#8A8480]">5 listings / pack</p>
-                    </div>
+                       <span className="text-[13px] font-black text-[#1B2B6B]">20 pts</span>
+                       <p className="text-[10px] text-[#8A8480]">3 listings / pack</p>
+                       <p className="text-[10px] text-[#8A8480] line-through">Direct: ₹25</p>
+                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 p-3 bg-[#F5F0E8] rounded-[10px]">
@@ -107,9 +108,10 @@ export default function PointsInfoModal({ trigger = 'icon', className }: PointsI
                       <p className="text-[11px] text-[#4A4640]">Get worker's phone + service areas</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <span className="text-[13px] font-black text-[#1B2B6B]">10 pts</span>
-                      <p className="text-[10px] text-[#8A8480]">10 workers / pack</p>
-                    </div>
+                       <span className="text-[13px] font-black text-[#1B2B6B]">10 pts</span>
+                       <p className="text-[10px] text-[#8A8480]">6 workers / pack</p>
+                       <p className="text-[10px] text-[#8A8480] line-through">Direct: ₹15</p>
+                     </div>
                   </div>
                 </div>
               </div>

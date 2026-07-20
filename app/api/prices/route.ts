@@ -14,7 +14,16 @@ export async function GET() {
     // Fallback to defaults if backend is unreachable
     return NextResponse.json({
       success: true,
-      data: { listing_unlock: 20, worker_unlock: 10 },
+      data: {
+          listing_unlock: 25,
+          worker_unlock: 15,
+          listing_boost: 99,
+          listing_boost_duration_days: 7,
+          premium_unlock_package: 59,
+          premium_unlock_package_count: 3,
+          vastoq_points_pack: 59,
+          vastoq_points_pack_points: 60,
+        },
     });
   }
 }
