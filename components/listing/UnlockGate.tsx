@@ -21,9 +21,6 @@ interface UnlockGateProps {
 type CouponState = 'idle' | 'checking' | 'valid' | 'invalid'
 type PaymentState = 'idle' | 'creating_order' | 'processing' | 'completed'
 
-// Points cost per unlock type
-const POINTS_COST = { listing: 20, worker: 10 } as const
-
 export default function UnlockGate({
   type,
   targetId,
@@ -33,10 +30,10 @@ export default function UnlockGate({
   onSuccess,
 }: UnlockGateProps) {
   const prices = usePrices()
-  const unlockPrice = type === 'listing' ? prices.listing_unlock : prices.worker_unlock
+  const pointsCost   = type === 'listing' ? prices.listing_points_cost  : prices.worker_points_cost
+  const directPrice  = type === 'listing' ? prices.listing_unlock_amount : prices.worker_unlock_amount
   const { user, loading: authLoading, reload: reloadUser } = useCurrentUser()
   const pathname = usePathname()
-  const pointsCost = POINTS_COST[type]
 
   const [coupon,       setCoupon]       = useState('')
   const [couponState,  setCouponState]  = useState<CouponState>('idle')
@@ -245,8 +242,7 @@ export default function UnlockGate({
         order_id: orderJson.order_id,
         amount: orderJson.amount,
         currency: orderJson.currency,
-        name: 'Vastoq',
-        description: 'Premium Pack - 5 Unlocks + Guarantee',
+        description: `Vastoq Points Pack — ${prices.vastoq_points_pack_points} Points + Rental Agreement Guarantee`,
         prefill: {
           email: orderJson.contact,
         },
@@ -344,13 +340,13 @@ export default function UnlockGate({
 
   const AuthScreen = (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-label="Sign in required"
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
     >
-      <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] overflow-hidden shadow-vastoq-lg">
+      <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] overflow-y-auto overscroll-contain shadow-vastoq-lg max-h-[90dvh] sm:max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#F5F0E8]">
           <div className="flex items-center gap-3">
@@ -431,7 +427,7 @@ export default function UnlockGate({
   if (authLoading) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm overflow-hidden"
         onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
       >
         <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] p-8 flex items-center justify-center shadow-vastoq-lg">
@@ -446,13 +442,13 @@ export default function UnlockGate({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-label="Unlock contact"
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
     >
-      <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] overflow-hidden shadow-vastoq-lg">
+      <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] overflow-y-auto overscroll-contain shadow-vastoq-lg max-h-[90dvh] sm:max-h-[85vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#F5F0E8]">
@@ -585,33 +581,61 @@ export default function UnlockGate({
         </div>
         )}
 
-        {/* Premium Package Option — tenants only */}
+        {/* Payment Options — tenants only */}
         {user?.role === 'tenant' && (
-        <div className="px-5 py-2">
-          <div className="relative overflow-hidden rounded-[12px] border border-[#1B2B6B]/30 bg-gradient-to-br from-[#F0F4FF] via-[#FAFAF8] to-[#FFF9F2] p-4 shadow-vastoq-sm">
-            <div className="absolute top-0 right-0 bg-[#1B2B6B] text-white text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-bl-[8px] tracking-wider animate-pulse">
-              Best Value
-            </div>
-            
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1.5">
-                <Zap size={14} className="text-[#1B2B6B]" />
-                <h3 className="text-[14px] font-extrabold text-[#1B2B6B]">100 Vastoq Points</h3>
-              </div>
-              <PointsInfoModal trigger="button" className="text-[11px]" />
-            </div>
+        <div className="px-5 py-3 space-y-2.5">
+          <p className="text-[11px] font-bold text-[#8A8480] uppercase tracking-wider">Payment options</p>
 
-            <div className="mt-3 flex items-center justify-between gap-4">
-              <span className="text-[16px] font-black text-[#1A1814]">₹99 <span className="text-[11px] font-normal text-[#8A8480] line-through">₹100</span></span>
-              
-              <button
-                onClick={handleBuyPackage}
-                disabled={pkgState !== 'idle'}
-                className="px-4 py-2 bg-[#1B2B6B] hover:bg-[#2D3E8C] text-white text-[12px] font-extrabold rounded-[8px] transition-colors flex items-center gap-1.5 min-h-[36px]"
-              >
-                {(pkgState === 'creating_order' || pkgState === 'processing') && <Loader2 size={12} className="animate-spin" />}
-                {pkgState === 'completed' ? 'Purchased!' : 'Buy Pack'}
-              </button>
+          {/* Option 1: Direct Cash */}
+          <div className="rounded-[12px] border border-[#E5E0D5] p-3.5 flex items-center justify-between gap-3 bg-white">
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <CreditCard size={13} className="text-[#4A4640]" />
+                <span className="text-[12.5px] font-bold text-[#1A1814]">Pay directly (one-time)</span>
+              </div>
+              <p className="text-[11px] text-[#8A8480] leading-tight">
+                {type === 'listing' ? 'Unlock this property now' : 'Unlock this worker now'} · no wallet needed
+              </p>
+            </div>
+            <button
+              onClick={handlePayment}
+              disabled={paymentState !== 'idle' || !!hasCredits}
+              className="flex-shrink-0 px-3.5 py-2 rounded-[8px] bg-[#1A1814] hover:bg-[#333] disabled:opacity-50 text-white text-[13px] font-extrabold transition-colors flex items-center gap-1.5 min-h-[36px]"
+            >
+              {(paymentState === 'creating_order' || paymentState === 'processing') && <Loader2 size={12} className="animate-spin" />}
+              {paymentState === 'completed' ? 'Done!' : `₹${directPrice}`}
+            </button>
+          </div>
+
+          {/* Option 2: Vastoq Points Pack */}
+          <div className="relative overflow-hidden rounded-[12px] border border-[#1B2B6B]/30 bg-gradient-to-br from-[#F0F4FF] via-[#FAFAF8] to-[#FFF9F2] p-3.5">
+            <div className="absolute top-0 right-0 bg-[#1B2B6B] text-white text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-bl-[8px] tracking-wider">
+              Better value
+            </div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <Zap size={13} className="text-[#1B2B6B]" />
+                  <span className="text-[12.5px] font-bold text-[#1B2B6B]">{prices.vastoq_points_pack_points} Vastoq Points</span>
+                  <PointsInfoModal />
+                </div>
+                <p className="text-[11px] text-[#4A4640] leading-tight">
+                  {type === 'listing'
+                    ? `${Math.floor(prices.vastoq_points_pack_points / prices.listing_points_cost)} property unlocks (${prices.listing_points_cost} pts each) · ~₹${(prices.vastoq_points_pack_amount / Math.floor(prices.vastoq_points_pack_points / prices.listing_points_cost)).toFixed(1)}/unlock`
+                    : `${Math.floor(prices.vastoq_points_pack_points / prices.worker_points_cost)} worker unlocks (${prices.worker_points_cost} pts each) · ~₹${(prices.vastoq_points_pack_amount / Math.floor(prices.vastoq_points_pack_points / prices.worker_points_cost)).toFixed(1)}/unlock`}
+                </p>
+              </div>
+              <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+                <span className="text-[15px] font-black text-[#1A1814]">₹{prices.vastoq_points_pack_amount}</span>
+                <button
+                  onClick={handleBuyPackage}
+                  disabled={pkgState !== 'idle'}
+                  className="px-3 py-1.5 bg-[#1B2B6B] hover:bg-[#2D3E8C] text-white text-[11px] font-extrabold rounded-[7px] transition-colors flex items-center gap-1 min-h-[30px]"
+                >
+                  {(pkgState === 'creating_order' || pkgState === 'processing') && <Loader2 size={10} className="animate-spin" />}
+                  {pkgState === 'completed' ? '✓ Bought!' : 'Buy Pack'}
+                </button>
+              </div>
             </div>
             {pkgError && (
               <p className="text-[11px] text-red-600 mt-2 font-medium">{pkgError}</p>
@@ -630,7 +654,7 @@ export default function UnlockGate({
 
         {/* CTA — tenants only */}
         {(!user || user.role === 'tenant') && (
-        <div className="px-5 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+        <div className="px-5 pt-2 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
           <button
             onClick={handleUnlock}
             disabled={!canUnlock || unlocking || paymentState !== 'idle'}
@@ -638,7 +662,7 @@ export default function UnlockGate({
               'w-full flex items-center justify-center gap-2 py-3.5 rounded-[10px] text-[15px] font-bold transition-colors min-h-[52px]',
               canUnlock && paymentState === 'idle'
                 ? 'bg-[#1D9E75] hover:bg-[#179068] text-white'
-                : 'bg-[#1B2B6B] text-white opacity-40 cursor-not-allowed'
+                : 'bg-[#1B2B6B]/20 text-[#8A8480] cursor-not-allowed'
             )}
           >
             {unlocking || paymentState === 'processing' ? (
@@ -652,12 +676,12 @@ export default function UnlockGate({
             ) : canUnlock ? (
               <><Check size={16} /> Unlock for free</>
             ) : (
-              <><Lock size={16} /> Apply a coupon or buy points to unlock</>
+              <><Lock size={16} /> Pay directly or buy points above</>
             )}
           </button>
 
-          <p className="text-[11px] text-[#8A8480] text-center mt-2.5 leading-relaxed">
-            Contact + location revealed instantly · No broker · Valid 30 days
+          <p className="text-[11px] text-[#8A8480] text-center mt-2 leading-relaxed">
+            Contact revealed instantly · No broker · Valid 30 days
           </p>
         </div>
         )}

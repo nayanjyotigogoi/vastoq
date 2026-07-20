@@ -4,14 +4,15 @@ import Footer from '@/components/nav/Footer'
 import HeroSection from '@/components/home/HeroSection'
 import TrustBar from '@/components/home/TrustBar'
 import ActionCards from '@/components/home/ActionCards'
+import FurnitureBanner from '@/components/home/FurnitureBanner'
 import FeaturedListings from '@/components/home/FeaturedListings'
 import FurnitureTeaser from '@/components/home/FurnitureTeaser'
 import HowItWorks from '@/components/home/HowItWorks'
 import HomeMapSection from '@/components/home/HomeMapSection'
 
 export const metadata = {
-  title: 'Vastoq — Rentals & Local Workers in Guwahati',
-  description: 'Find verified flats, PGs, rooms and houses for rent in Guwahati. Hire trusted local workers — electricians, plumbers, carpenters and more. No broker fees.',
+  title: 'Vastoq — Rental Properties, Furniture Rentals & Local Workers',
+  description: 'Find verified flats, PGs, rooms and houses for rent in Guwahati. Rent furniture & appliances effortlessly. Hire trusted local workers — electricians, plumbers, carpenters & more.',
 }
 
 export default function HomePage() {
@@ -22,10 +23,11 @@ export default function HomePage() {
         <HeroSection />
         <TrustBar />
         <ActionCards />
+        <FurnitureBanner />
         <HomeMapSection />
         <FeaturedListings />
-        <HowItWorks />
         <FurnitureTeaser />
+        <HowItWorks />
       </main>
       <Footer />
       <MobileNav />

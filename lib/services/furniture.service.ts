@@ -23,9 +23,14 @@ export async function getFurnitureItems(
 ): Promise<FurnitureItem[]> {
   let url = `${process.env.NEXT_PUBLIC_API_URL}/furniture`
 
+  const params = new URLSearchParams()
   if (category) {
-    url += `?category=${encodeURIComponent(category)}`
+    params.set('category', category)
   }
+  params.set('is_available', '1')
+  params.set('per_page', '100')
+
+  url += `?${params.toString()}`
 
   const res = await fetch(url, {
     cache: 'no-store',
@@ -40,7 +45,106 @@ export async function getFurnitureItems(
 
   const json = await res.json()
 
-  return json?.data?.data ?? []
+  return json?.data?.data ?? json?.data ?? []
+}
+
+export function formatCategoryName(catKey: string): string {
+  const customMap: Record<string, string> = {
+    bed: 'Beds',
+    sofa: 'Sofas',
+    refrigerator: 'Refrigerators',
+    washing_machine: 'Washing Machines',
+    dining_table: 'Dining Tables',
+    study_table: 'Study Tables',
+    television: 'Televisions',
+    tv: 'Televisions',
+    chair: 'Chairs',
+    wardrobe: 'Wardrobes',
+    mattress: 'Mattresses',
+    air_conditioner: 'Air Conditioners',
+  }
+
+  if (customMap[catKey.toLowerCase()]) {
+    return customMap[catKey.toLowerCase()]
+  }
+
+  return catKey
+    .replaceAll('_', ' ')
+    .replaceAll('-', ' ')
+    .replace(/\b\w/g, (l) => l.toUpperCase())
+}
+
+export interface DynamicCategorySummary {
+  id: string
+  name: string
+  startingPrice: number
+  itemCount: number
+  image: string
+  sampleItemName: string
+}
+
+export async function getDynamicCategorySummaries(): Promise<{
+  categories: DynamicCategorySummary[]
+  overallMinPrice: number
+}> {
+  try {
+    const items = await getFurnitureItems()
+    const availableItems = items.filter((item) => item.is_available)
+
+    if (availableItems.length === 0) {
+      return { categories: [], overallMinPrice: 0 }
+    }
+
+    const categoryMap = new Map<string, FurnitureItem[]>()
+
+    for (const item of availableItems) {
+      const cat = item.category || 'other'
+      if (!categoryMap.has(cat)) {
+        categoryMap.set(cat, [])
+      }
+      categoryMap.get(cat)!.push(item)
+    }
+
+    const categories: DynamicCategorySummary[] = []
+    let overallMinPrice = Infinity
+
+    categoryMap.forEach((catItems, catKey) => {
+      const prices = catItems
+        .map((i) => Number(i.price_per_month))
+        .filter((p) => !isNaN(p) && p > 0)
+
+      const minPrice = prices.length > 0 ? Math.min(...prices) : 0
+
+      if (minPrice > 0 && minPrice < overallMinPrice) {
+        overallMinPrice = minPrice
+      }
+
+      const firstImageItem = catItems.find((i) => i.image_url)
+      const sampleImage =
+        firstImageItem?.image_url ||
+        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&q=80'
+
+      categories.push({
+        id: catKey,
+        name: formatCategoryName(catKey),
+        startingPrice: minPrice,
+        itemCount: catItems.length,
+        image: sampleImage,
+        sampleItemName: catItems[0]?.name || '',
+      })
+    })
+
+    // Sort categories by starting price ascending (lowest price first)
+    categories.sort((a, b) => a.startingPrice - b.startingPrice)
+
+    return {
+      categories,
+      overallMinPrice: overallMinPrice === Infinity ? 0 : overallMinPrice,
+    }
+  } catch (error) {
+    console.error('Error fetching dynamic category summaries:', error)
+    return { categories: [], overallMinPrice: 0 }
+  }
 }
 
 export async function getFurnitureItem(

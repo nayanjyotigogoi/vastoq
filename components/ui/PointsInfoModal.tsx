@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { X, Zap, Home, Wrench, ShoppingBag, Info } from 'lucide-react'
+import { usePrices } from '@/hooks/usePrices'
 
 interface PointsInfoModalProps {
   trigger?: 'icon' | 'button'
@@ -23,6 +24,10 @@ export function PointsInfoTrigger({ onClick, className }: { onClick: () => void;
 
 export default function PointsInfoModal({ trigger = 'icon', className }: PointsInfoModalProps) {
   const [open, setOpen] = useState(false)
+  const prices = usePrices()
+
+  const listingsPerPack = Math.floor(prices.vastoq_points_pack_points / prices.listing_points_cost)
+  const workersPerPack  = Math.floor(prices.vastoq_points_pack_points / prices.worker_points_cost)
 
   return (
     <>
@@ -39,13 +44,13 @@ export default function PointsInfoModal({ trigger = 'icon', className }: PointsI
 
       {open && (
         <div
-          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm overflow-hidden"
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}
           role="dialog"
           aria-modal="true"
           aria-label="Vastoq Points explained"
         >
-          <div className="bg-white w-full sm:max-w-sm rounded-t-[22px] sm:rounded-[18px] overflow-hidden shadow-2xl">
+          <div className="bg-white w-full sm:max-w-sm rounded-t-[22px] sm:rounded-[18px] overflow-y-auto overscroll-contain shadow-2xl max-h-[90dvh] sm:max-h-[85vh]">
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#F5F0E8]">
               <div className="flex items-center gap-2.5">
@@ -73,9 +78,9 @@ export default function PointsInfoModal({ trigger = 'icon', className }: PointsI
                   <ShoppingBag size={14} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-[13px] font-bold text-[#1A1814]">₹99 → 100 Vastoq Points</p>
+                  <p className="text-[13px] font-bold text-[#1A1814]">₹{prices.vastoq_points_pack_amount} → {prices.vastoq_points_pack_points} Vastoq Points</p>
                   <p className="text-[11.5px] text-[#4A4640] mt-0.5 leading-relaxed">
-                    Buy one pack and you get 100 points credited to your wallet instantly.
+                    Buy the pack and get {prices.vastoq_points_pack_points} points credited instantly — cheaper per unlock vs paying directly.
                   </p>
                 </div>
               </div>
@@ -93,8 +98,9 @@ export default function PointsInfoModal({ trigger = 'icon', className }: PointsI
                       <p className="text-[11px] text-[#4A4640]">Get owner's phone + exact address</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <span className="text-[13px] font-black text-[#1B2B6B]">20 pts</span>
-                      <p className="text-[10px] text-[#8A8480]">5 listings / pack</p>
+                      <span className="text-[13px] font-black text-[#1B2B6B]">{prices.listing_points_cost} pts</span>
+                      <p className="text-[10px] text-[#8A8480]">{listingsPerPack} listings / pack</p>
+                      <p className="text-[10px] text-[#8A8480] line-through">Direct: ₹{prices.listing_unlock_amount}</p>
                     </div>
                   </div>
 
@@ -107,8 +113,9 @@ export default function PointsInfoModal({ trigger = 'icon', className }: PointsI
                       <p className="text-[11px] text-[#4A4640]">Get worker's phone + service areas</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <span className="text-[13px] font-black text-[#1B2B6B]">10 pts</span>
-                      <p className="text-[10px] text-[#8A8480]">10 workers / pack</p>
+                      <span className="text-[13px] font-black text-[#1B2B6B]">{prices.worker_points_cost} pts</span>
+                      <p className="text-[10px] text-[#8A8480]">{workersPerPack} workers / pack</p>
+                      <p className="text-[10px] text-[#8A8480] line-through">Direct: ₹{prices.worker_unlock_amount}</p>
                     </div>
                   </div>
                 </div>
