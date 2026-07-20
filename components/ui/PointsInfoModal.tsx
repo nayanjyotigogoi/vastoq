@@ -39,13 +39,13 @@ export default function PointsInfoModal({ trigger = 'icon', className }: PointsI
 
       {open && (
         <div
-          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm overflow-hidden"
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}
           role="dialog"
           aria-modal="true"
           aria-label="Vastoq Points explained"
         >
-          <div className="bg-white w-full sm:max-w-sm rounded-t-[22px] sm:rounded-[18px] overflow-hidden shadow-2xl">
+          <div className="bg-white w-full sm:max-w-sm rounded-t-[22px] sm:rounded-[18px] overflow-y-auto overscroll-contain shadow-2xl max-h-[90dvh] sm:max-h-[85vh]">
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#F5F0E8]">
               <div className="flex items-center gap-2.5">

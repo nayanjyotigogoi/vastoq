@@ -344,13 +344,13 @@ export default function UnlockGate({
 
   const AuthScreen = (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-label="Sign in required"
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
     >
-      <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] overflow-hidden shadow-vastoq-lg">
+      <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] overflow-y-auto overscroll-contain shadow-vastoq-lg max-h-[90dvh] sm:max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#F5F0E8]">
           <div className="flex items-center gap-3">
@@ -431,7 +431,7 @@ export default function UnlockGate({
   if (authLoading) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm overflow-hidden"
         onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
       >
         <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] p-8 flex items-center justify-center shadow-vastoq-lg">
@@ -446,13 +446,13 @@ export default function UnlockGate({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-label="Unlock contact"
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
     >
-      <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] overflow-hidden shadow-vastoq-lg">
+      <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] overflow-y-auto overscroll-contain shadow-vastoq-lg max-h-[90dvh] sm:max-h-[85vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#F5F0E8]">

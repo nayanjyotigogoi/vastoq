@@ -72,7 +72,7 @@ try {
 
 }
 
-return ( <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"> <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] shadow-vastoq-lg max-h-[90vh] overflow-y-auto"> <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#F5F0E8]"> <div> <h2 className="text-[16px] font-bold text-[#1A1814]">
+return ( <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4 overflow-hidden"> <div className="bg-white w-full sm:max-w-md rounded-t-[20px] sm:rounded-[18px] shadow-vastoq-lg max-h-[90dvh] sm:max-h-[85vh] overflow-y-auto overscroll-contain"> <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#F5F0E8]"> <div> <h2 className="text-[16px] font-bold text-[#1A1814]">
 Enquire to rent </h2> <p className="text-[12px] text-[#8A8480]">
 {item.name} </p> </div>
 
