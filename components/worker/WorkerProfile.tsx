@@ -196,14 +196,14 @@ export default function WorkerProfile({ worker }: { worker: Worker }) {
                   className="w-full flex items-center justify-center gap-2 py-3 bg-[#1B2B6B] text-white text-[14px] font-bold rounded-[10px] hover:bg-[#2D3E8C] transition-colors min-h-[48px]"
                 >
                   <Lock size={16} />
-                  Unlock details — 10 Points
+                  Unlock details — {prices.worker_points_cost} Points
                 </button>
                 <div className="bg-[#F5F0E8] rounded-[10px] p-3 text-[11px] text-[#4A4640] leading-relaxed relative">
                   <div className="flex items-center gap-1.5 font-bold text-[#1B2B6B] mb-1">
                     <span>Vastoq Points System</span>
                     <PointsInfoModal />
                   </div>
-                  Buy 60 points for ₹59 and unlock up to 6 workers (10 pts each). Or pay ₹15 directly for this one worker — no wallet needed.
+                  Buy {prices.vastoq_points_pack_points} points for ₹{prices.vastoq_points_pack_amount} and unlock up to {Math.floor(prices.vastoq_points_pack_points / prices.worker_points_cost)} workers ({prices.worker_points_cost} pts each). Or pay ₹{prices.worker_unlock_amount} directly for this one worker — no wallet needed.
                 </div>
                 <p className="text-[11px] text-[#8A8480] text-center">
                   Pay once, get direct contact. No middleman.

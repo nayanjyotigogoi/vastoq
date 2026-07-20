@@ -21,9 +21,6 @@ interface UnlockGateProps {
 type CouponState = 'idle' | 'checking' | 'valid' | 'invalid'
 type PaymentState = 'idle' | 'creating_order' | 'processing' | 'completed'
 
-// Points cost per unlock type
-const POINTS_COST = { listing: 20, worker: 10 } as const
-
 export default function UnlockGate({
   type,
   targetId,
@@ -33,10 +30,10 @@ export default function UnlockGate({
   onSuccess,
 }: UnlockGateProps) {
   const prices = usePrices()
-  const unlockPrice = type === 'listing' ? prices.listing_unlock : prices.worker_unlock
+  const pointsCost   = type === 'listing' ? prices.listing_points_cost  : prices.worker_points_cost
+  const directPrice  = type === 'listing' ? prices.listing_unlock_amount : prices.worker_unlock_amount
   const { user, loading: authLoading, reload: reloadUser } = useCurrentUser()
   const pathname = usePathname()
-  const pointsCost = POINTS_COST[type]
 
   const [coupon,       setCoupon]       = useState('')
   const [couponState,  setCouponState]  = useState<CouponState>('idle')
@@ -245,8 +242,7 @@ export default function UnlockGate({
         order_id: orderJson.order_id,
         amount: orderJson.amount,
         currency: orderJson.currency,
-        name: 'Vastoq',
-        description: 'Vastoq Points Pack — 60 Points + Rental Agreement Guarantee',
+        description: `Vastoq Points Pack — ${prices.vastoq_points_pack_points} Points + Rental Agreement Guarantee`,
         prefill: {
           email: orderJson.contact,
         },
@@ -607,7 +603,7 @@ export default function UnlockGate({
               className="flex-shrink-0 px-3.5 py-2 rounded-[8px] bg-[#1A1814] hover:bg-[#333] disabled:opacity-50 text-white text-[13px] font-extrabold transition-colors flex items-center gap-1.5 min-h-[36px]"
             >
               {(paymentState === 'creating_order' || paymentState === 'processing') && <Loader2 size={12} className="animate-spin" />}
-              {paymentState === 'completed' ? 'Done!' : type === 'listing' ? '₹25' : '₹15'}
+              {paymentState === 'completed' ? 'Done!' : `₹${directPrice}`}
             </button>
           </div>
 
@@ -620,17 +616,17 @@ export default function UnlockGate({
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <Zap size={13} className="text-[#1B2B6B]" />
-                  <span className="text-[12.5px] font-bold text-[#1B2B6B]">60 Vastoq Points</span>
+                  <span className="text-[12.5px] font-bold text-[#1B2B6B]">{prices.vastoq_points_pack_points} Vastoq Points</span>
                   <PointsInfoModal />
                 </div>
                 <p className="text-[11px] text-[#4A4640] leading-tight">
                   {type === 'listing'
-                    ? '3 property unlocks (20 pts each) · ~₹19.6/unlock'
-                    : '6 worker unlocks (10 pts each) · ~₹9.8/unlock'}
+                    ? `${Math.floor(prices.vastoq_points_pack_points / prices.listing_points_cost)} property unlocks (${prices.listing_points_cost} pts each) · ~₹${(prices.vastoq_points_pack_amount / Math.floor(prices.vastoq_points_pack_points / prices.listing_points_cost)).toFixed(1)}/unlock`
+                    : `${Math.floor(prices.vastoq_points_pack_points / prices.worker_points_cost)} worker unlocks (${prices.worker_points_cost} pts each) · ~₹${(prices.vastoq_points_pack_amount / Math.floor(prices.vastoq_points_pack_points / prices.worker_points_cost)).toFixed(1)}/unlock`}
                 </p>
               </div>
               <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
-                <span className="text-[15px] font-black text-[#1A1814]">₹59</span>
+                <span className="text-[15px] font-black text-[#1A1814]">₹{prices.vastoq_points_pack_amount}</span>
                 <button
                   onClick={handleBuyPackage}
                   disabled={pkgState !== 'idle'}
