@@ -9,7 +9,6 @@ import {
   PlusSquare,
   Eye,
   Lock,
-  TrendingUp,
   CheckCircle2,
   Clock,
   XCircle,
@@ -68,10 +67,6 @@ export default function OwnerDashboard() {
     loadListings()
   }, [user])
 
-  const totalRevenue = listings.reduce(
-    (sum, item) => sum + item.unlock_count * 20,
-    0
-  )
 
   const totalUnlocks = listings.reduce(
     (sum, item) => sum + item.unlock_count,
@@ -130,17 +125,9 @@ export default function OwnerDashboard() {
           </Link>
         </div>
 
-        {/* Revenue overview */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        {/* Stats overview */}
+        <div className="grid grid-cols-2 gap-4 mb-8">
           {[
-            {
-              icon: TrendingUp,
-              label: 'Total revenue',
-              value: `₹${totalRevenue}`,
-              sub: 'from unlock fees',
-              color: 'text-[#1D9E75]',
-              bg: 'bg-[#E1F5EE]',
-            },
             {
               icon: Lock,
               label: 'Total unlocks',
