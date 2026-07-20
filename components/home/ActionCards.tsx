@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Home, Wrench, PlusSquare, ArrowRight } from 'lucide-react'
+import { Home, Wrench, Armchair, PlusSquare, ArrowRight } from 'lucide-react'
 
 const cards = [
   {
@@ -9,6 +9,7 @@ const cards = [
     href: '/rentals',
     color: 'bg-[#E8ECF8]',
     iconColor: 'text-[#1B2B6B]',
+    badge: null,
   },
   {
     icon: Wrench,
@@ -17,6 +18,16 @@ const cards = [
     href: '/workers',
     color: 'bg-[#E1F5EE]',
     iconColor: 'text-[#1D9E75]',
+    badge: null,
+  },
+  {
+    icon: Armchair,
+    title: 'Rent furniture',
+    description: 'Beds, sofas, fridges & WFH packages delivered starting at ₹299/mo.',
+    href: '/furniture',
+    color: 'bg-[#FDF2F8]',
+    iconColor: 'text-[#DB2777]',
+    badge: 'Popular',
   },
   {
     icon: PlusSquare,
@@ -25,20 +36,26 @@ const cards = [
     href: '/owner/listings/new',
     color: 'bg-[#FEF3DC]',
     iconColor: 'text-[#E8A020]',
+    badge: null,
   },
 ]
 
 export default function ActionCards() {
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-14" aria-labelledby="action-heading">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10" aria-labelledby="action-heading">
       <h2 id="action-heading" className="sr-only">Quick actions</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        {cards.map(({ icon: Icon, title, description, href, color, iconColor }) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {cards.map(({ icon: Icon, title, description, href, color, iconColor, badge }) => (
           <Link
             key={href}
             href={href}
-            className="group bg-white rounded-[18px] border border-[#E5E0D5] p-6 shadow-vastoq-sm hover:shadow-vastoq-md transition-all duration-200 hover:-translate-y-0.5 flex flex-col gap-4"
+            className="group relative bg-white rounded-[18px] border border-[#E5E0D5] p-6 shadow-vastoq-sm hover:shadow-vastoq-md transition-all duration-200 hover:-translate-y-0.5 flex flex-col gap-4"
           >
+            {badge && (
+              <span className="absolute top-4 right-4 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FCE7F3] text-[#DB2777]">
+                {badge}
+              </span>
+            )}
             <div className={`w-12 h-12 rounded-[12px] ${color} flex items-center justify-center`}>
               <Icon size={22} className={iconColor} aria-hidden="true" />
             </div>
