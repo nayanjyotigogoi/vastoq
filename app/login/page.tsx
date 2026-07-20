@@ -32,7 +32,7 @@ function LoginForm() {
   const [showPw, setShowPw] = useState(false)
 
   // Login fields
-  const [loginPhone, setLoginPhone] = useState('')
+  const [loginEmail, setLoginEmail] = useState('')
   const [loginPw, setLoginPw] = useState('')
 
   // Register fields
@@ -88,7 +88,7 @@ function LoginForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ phone: loginPhone, password: loginPw }),
+        body: JSON.stringify({ email: loginEmail, password: loginPw }),
       })
       const json = await res.json()
       if (!res.ok) { setApiError(json.error?.message ?? 'Login failed'); return }
@@ -259,15 +259,13 @@ function LoginForm() {
                 <Divider />
 
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#1A1814] mb-1.5">Mobile number</label>
+                  <label className="block text-[12px] font-semibold text-[#1A1814] mb-1.5">Email address</label>
                   <div className="flex items-center gap-2 px-3.5 py-3 border border-[#E5E0D5] rounded-[10px] focus-within:ring-2 focus-within:ring-[#1B2B6B]/30 focus-within:border-[#1B2B6B] transition-all">
-                    <span className="text-[14px] font-semibold text-[#4A4640] flex-shrink-0">+91</span>
-                    <div className="w-px h-4 bg-[#E5E0D5] flex-shrink-0" />
-                    <Phone size={15} className="text-[#8A8480] flex-shrink-0" />
+                    <Mail size={15} className="text-[#8A8480] flex-shrink-0" />
                     <input
-                      type="tel" inputMode="numeric" placeholder="10-digit mobile number"
-                      value={loginPhone}
-                      onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      type="email" placeholder="you@example.com"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
                       className="flex-1 bg-transparent text-[14px] text-[#1A1814] placeholder:text-[#8A8480] focus:outline-none"
                       required autoFocus
                     />
@@ -293,7 +291,7 @@ function LoginForm() {
                 {apiError && <p className="text-[12px] text-red-600">{apiError}</p>}
 
                 <button type="submit"
-                  disabled={loginPhone.length < 10 || loginPw.length < 6 || loading}
+                  disabled={!loginEmail || loginPw.length < 6 || loading}
                   className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#1B2B6B] text-white text-[15px] font-bold rounded-[10px] hover:bg-[#2D3E8C] transition-colors disabled:opacity-60 min-h-[52px]"
                 >
                   {loading ? <><Loader2 size={18} className="animate-spin" /> Signing in...</> : 'Sign in'}
